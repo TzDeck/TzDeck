@@ -1,4 +1,4 @@
-import { calculateSupplyRarity, RARITY_THRESHOLDS, RARITY_TIERS, type CardRarity } from "@/lib/rarity";
+import { calculateSupplyRarity, RARITY_TIERS, SUPPLY_RARITY_MAX_EDITIONS, type CardRarity } from "@/lib/rarity";
 
 // ---------------------------------------------------------------------------
 // U4: card stat derivation (Power/HP), ported directly from the validated
@@ -381,9 +381,9 @@ export const TRAINER_LEVEL_UNLOCK: Record<CardRarity, number> = {
  */
 const TRAINER_REPRESENTATIVE_EDITIONS: Record<CardRarity, number> = {
   legendary: 1,
-  epic: RARITY_THRESHOLDS.epicEditions,
-  rare: RARITY_THRESHOLDS.supplyRareEditions,
-  uncommon: RARITY_THRESHOLDS.uncommonEditions,
+  epic: SUPPLY_RARITY_MAX_EDITIONS.epic,
+  rare: SUPPLY_RARITY_MAX_EDITIONS.rare,
+  uncommon: SUPPLY_RARITY_MAX_EDITIONS.uncommon,
   common: 100,
 };
 

@@ -41,19 +41,19 @@ TzDeck rarity is a deterministic display classification, not an on-chain NFT tra
 
 | Rarity | Deterministic rule |
 | --- | --- |
-| Legendary | Exactly 1 edition **and** at least 500 ꜩ |
-| Epic | 5 or fewer editions **and** at least 180 ꜩ, **or** any supply at 500 ꜩ or more |
-| Rare | Exactly 1 edition **or** at least 110 ꜩ |
-| Uncommon | 25 or fewer editions **or** at least 5 ꜩ |
-| Common | More than 25 editions **and** less than 5 ꜩ |
+| Legendary | Exactly 1 edition **and** at least 1,000 ꜩ |
+| Epic | 5 or fewer editions **and** at least 100 ꜩ, **or** any supply at 1,000 ꜩ or more |
+| Rare | 10 or fewer editions **and** at least 25 ꜩ, **or** any supply at 250 ꜩ or more |
+| Uncommon | 10 or fewer editions **and** at least 5 ꜩ, **or** any supply at 50 ꜩ or more |
+| Common | Everything else |
 
-The top two tiers need both scarcity and price; the lower tiers need either. Rules are evaluated from Legendary downward, so the first match wins.
+Every tier needs scarcity and price together, or a high enough price alone. Legendary always needs a 1 of 1. Rules are evaluated from Legendary downward, so the first match wins. The ladder lives in `PRICED_RARITY_LADDER` in `src/lib/rarity.ts`.
 
-Booster-pack contents are randomized from active OBJKT listings, but the rarity assigned to each selected card is deterministic. Cards in **My Deck** are classified by edition supply alone because wallet holdings do not include a listing price. As a result, the same NFT can have a different displayed rarity in a booster pack if its listing price raises it into a higher tier.
+Booster-pack contents are randomized from active OBJKT listings, but the rarity assigned to each selected card is deterministic. Cards in **My Deck** are classified by edition supply alone because wallet holdings do not include a listing price. As a result, the same NFT can show a different rarity in a booster pack, higher or lower, depending on its listing price. A 1 of 1 listed at 3 ꜩ is Common in a pack and Legendary in a deck.
 
-The deck-only supply ladder is Legendary for a 1 of 1, Epic for editions of 5 or fewer, Rare for editions of 10 or fewer, Uncommon for editions of 25 or fewer, and Common for larger editions -- the same five-tier scale used by My Deck's battle system (see below).
+The deck-only supply ladder is Legendary for a 1 of 1, Epic for editions of 5 or fewer, Rare for editions of 10 or fewer, Uncommon for editions of 25 or fewer, and Common for larger editions -- the same five-tier scale used by My Deck's battle system (see below). Its ceilings live in `SUPPLY_RARITY_MAX_EDITIONS`, apart from the priced ladder, so recalibrating pack rarity never changes a battle card's stats.
 
-These thresholds were calibrated against 500 active OBJKT listings sampled deterministically across the marketplace's listing-ID range. The measured distribution was 1.6% Legendary, 4.8% Epic, 24.0% Rare, 55.6% Uncommon, and 14.0% Common. Re-run `npm run calibrate:rarity` to verify the live catalogue remains within the design targets.
+The priced ladder is calibrated against the pack draw itself, because it only ever grades pack cards and a pack is not a uniform sample of the market. Over 100 live packs in September 2026, it graded 2.6% of cards Legendary, 8.8% Epic, 16.8% Rare, 26.0% Uncommon, and 45.8% Common. About one pack in nine held a Legendary. `npm run calibrate:rarity` draws 100 live packs, prints the mix and price percentiles by edition size, and fails when a tier outnumbers the tier below it or Legendary passes 4% or Epic passes 12%.
 
 ## Wishlist backup
 
@@ -180,7 +180,7 @@ NEXT_PUBLIC_TEZOS_RPC_URL=https://mainnet.api.tez.ie
 ```bash
 npm test                  # Run the automated test suite
 npm run lint              # Check the code with ESLint
-npm run calibrate:rarity  # Verify rarity tiers against 500 live listings
+npm run calibrate:rarity  # Grade 100 live packs and check the rarity pyramid (-- <n> for n packs)
 npm run check:diversity   # Measure 60 live packs: artist spread, listing age, rarity mix (-- <n> for n packs)
 npm run migrate           # Apply battle-system database migrations
 npm run migrate:status    # Print the migration plan without writing to the database

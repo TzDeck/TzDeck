@@ -173,7 +173,7 @@ test("normalizeObjktToken maps shared OBJKT metadata and listing options", () =>
   assert.equal(card.artist_alias, "tz1abc...3456");
   assert.equal(card.collection_name, "Example Collection");
   assert.equal(card.price_xtz, 25);
-  assert.equal(card.rarity, "uncommon");
+  assert.equal(card.rarity, "rare");
   assert.equal(card.quantity_owned, 2);
 });
 
@@ -203,7 +203,7 @@ test("a token OBJKT reports no supply for is Unknown, never a 1 of 1", () => {
     assert.equal(held.rarity, "common", `a held token with supply ${supply} grades Common, as the server battles it`);
 
     // Listed: price alone decides, so a cheap listing can't be lifted by scarcity it never showed.
-    assert.equal(normalizeObjktToken(token, { priceMutez: 200_000_000 }).rarity, "rare", `supply ${supply}`);
+    assert.equal(normalizeObjktToken(token, { priceMutez: 200_000_000 }).rarity, "uncommon", `supply ${supply}`);
     assert.equal(normalizeObjktToken(token, { priceMutez: 1_000_000 }).rarity, "common", `supply ${supply}`);
   }
 });
@@ -575,7 +575,7 @@ test("fetchCardsByKeys resolves a whole wishlist in one request", async () => {
     assert.equal(cards.size, 2);
     // Listed: price refreshes and rarity re-derives from supply plus price.
     assert.equal(cards.get("KT1Example:0")?.price_xtz, 600);
-    assert.equal(cards.get("KT1Example:0")?.rarity, "legendary");
+    assert.equal(cards.get("KT1Example:0")?.rarity, "epic");
     // Unlisted: no price, so rarity falls back to the supply ladder.
     assert.equal(cards.get("KT1Example:1")?.price_xtz, undefined);
     assert.equal(cards.get("KT1Example:1")?.rarity, "common");
