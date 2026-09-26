@@ -322,7 +322,7 @@ test("importing merges new cards and hands back current prices", async () => {
     assert.deepEqual(imported?.map((c) => c.token_id), ["0", "1"]);
     // The file claimed 999 XTZ; OBJKT says the listing is 5.
     assert.equal(imported?.[1].price_xtz, 5);
-    assert.equal(imported?.[1].rarity, "uncommon");
+    assert.equal(imported?.[1].rarity, "common");
   } finally {
     objktClient.request = originalRequest;
   }

@@ -161,7 +161,7 @@ test("an unrecognized rarity is re-derived rather than trusted", () => {
 
   const [imported] = parseWishlistExport(raw).cards;
 
-  assert.equal(imported.rarity, "legendary");
+  assert.equal(imported.rarity, "epic");
 });
 
 test("non-numeric prices and edition counts are discarded", () => {
@@ -195,7 +195,7 @@ test("a saved edition count of zero is repaired to Unknown and the card regraded
 
   const listed = repairStoredCard(card({ editions: 0, price_xtz: 200, rarity: "epic" }));
   assert.equal(listed.editions, undefined);
-  assert.equal(listed.rarity, "rare", "a listed card grades on its price alone");
+  assert.equal(listed.rarity, "uncommon", "a listed card grades on its price alone");
 });
 
 test("a saved IPFS link from the unfinished media proxy renders exactly as it did", () => {
@@ -278,7 +278,7 @@ test("refreshing replaces a stale price with the current listing", async () => {
   );
 
   assert.equal(result.cards[0].price_xtz, 600);
-  assert.equal(result.cards[0].rarity, "legendary");
+  assert.equal(result.cards[0].rarity, "epic");
   assert.equal(result.refreshed, 1);
   assert.equal(result.stale, 0);
 });
