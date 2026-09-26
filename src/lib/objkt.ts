@@ -60,12 +60,24 @@ interface PullListingResponse {
   listing: PullListingRow[];
 }
 
-/** Three independently offset windows, aliased so one round trip covers them all. */
+/** One recent window and three deep ones, aliased so one round trip covers them all. */
 interface ObjktPackWindowsResponse {
   w1?: PullListingRow[];
   w2?: PullListingRow[];
   w3?: PullListingRow[];
+  w4?: PullListingRow[];
 }
+
+/**
+ * When the oldest active OBJKT listing was made, as of September 2026. A deep
+ * window cuts off at a random moment between this and now. A cutoff older than
+ * every surviving listing returns an empty window, which the other windows and
+ * the fallback absorb.
+ */
+export const OLDEST_ACTIVE_LISTING_MS = Date.parse("2022-09-10T00:00:00Z");
+
+/** The newest listings, about the last three weeks of the market, so new art keeps its place in packs. */
+const RECENT_WINDOW_DEPTH = 20_000;
 
 export async function fetchUserHoldings(address: string): Promise<NFTCard[]> {
   const query = `
@@ -241,17 +253,17 @@ export async function fetchRandomPack(
   count = 5,
   denylist: DenylistIndex = ALLOW_ALL,
 ): Promise<PackDraw> {
-  // Three windows rather than one contiguous block. A single offset+limit over
-  // `id desc` returns adjacent listing IDs, so an artist who bulk-lists fills
-  // the whole window -- which is how a pack ends up being one collection. The
-  // bands are staggered so the first is nearly always populated while the
-  // others reach deeper than the newest few hundred listings.
+  // Four windows rather than one contiguous block. A single window returns
+  // adjacent listings, so an artist who bulk-lists fills the whole window --
+  // which is how a pack ends up being one collection. The deep windows cut off
+  // by timestamp rather than offset because OBJKT fails an offset past a few
+  // hundred thousand rows, and the market goes back to 2022.
   const windowSize = Math.max(count * 2, 10);
-  const offsets = [
-    Math.floor(Math.random() * 800),
-    800 + Math.floor(Math.random() * 4_200),
-    5_000 + Math.floor(Math.random() * 15_000),
-  ];
+  const recentOffset = Math.floor(Math.random() * RECENT_WINDOW_DEPTH);
+  const now = Date.now();
+  const deepCutoffs = Array.from({ length: 3 }, () => new Date(
+    OLDEST_ACTIVE_LISTING_MS + Math.random() * (now - OLDEST_ACTIVE_LISTING_MS),
+  ).toISOString());
 
   const listingFields = `
     id
@@ -263,20 +275,27 @@ export async function fetchRandomPack(
     price: { _gt: 0 },
     token: { display_uri: { _is_null: false } }
   `;
-  const window = (alias: string, offsetVar: string) => `
+  const deepWindow = (alias: string, cutoffVar: string) => `
     ${alias}: listing(
-      where: { ${activeWhere} },
+      where: { ${activeWhere}, timestamp: { _lte: ${cutoffVar} } },
       limit: $limit,
-      offset: ${offsetVar},
-      order_by: { id: desc }
+      order_by: { timestamp: desc }
     ) { ${listingFields} }
   `;
 
   const windowsQuery = `
-    query RandomActiveListings($limit: Int!, $o1: Int!, $o2: Int!, $o3: Int!) {
-      ${window("w1", "$o1")}
-      ${window("w2", "$o2")}
-      ${window("w3", "$o3")}
+    query RandomActiveListings(
+      $limit: Int!, $recent: Int!, $t2: timestamptz!, $t3: timestamptz!, $t4: timestamptz!
+    ) {
+      w1: listing(
+        where: { ${activeWhere} },
+        limit: $limit,
+        offset: $recent,
+        order_by: { id: desc }
+      ) { ${listingFields} }
+      ${deepWindow("w2", "$t2")}
+      ${deepWindow("w3", "$t3")}
+      ${deepWindow("w4", "$t4")}
     }
   `;
 
@@ -294,19 +313,22 @@ export async function fetchRandomPack(
   try {
     const windows = await objktClient.request<ObjktPackWindowsResponse>(windowsQuery, {
       limit: windowSize,
-      o1: offsets[0],
-      o2: offsets[1],
-      o3: offsets[2],
+      recent: recentOffset,
+      t2: deepCutoffs[0],
+      t3: deepCutoffs[1],
+      t4: deepCutoffs[2],
     });
 
     let listings = [
       ...(windows?.w1 || []),
       ...(windows?.w2 || []),
       ...(windows?.w3 || []),
+      ...(windows?.w4 || []),
     ];
 
-    // Deep offsets overrun the active set on a quiet market; fall back to the
-    // newest listings rather than serving a short pack.
+    // The windows come back short when cutoffs land before the oldest surviving
+    // listing or the market is quiet; fall back to the newest listings rather
+    // than serving a short pack.
     if (listings.length < count) {
       const fallback = await objktClient.request<PullListingResponse>(fallbackQuery, {
         limit: Math.max(count * 4, 24),

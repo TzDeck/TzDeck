@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { distinctCollectionName, formatShortAddress, isImageArtifact, isPlayableVideo, normalizeEditions } from "./card";
 import { convertIpfsUrl, extractIpfsHash, getCardImageSources } from "./ipfs";
-import { fetchCardsByKeys, fetchRandomPack, fetchTokenByKey, fetchUserHoldings, objktClient } from "./objkt";
+import { fetchCardsByKeys, fetchRandomPack, fetchTokenByKey, fetchUserHoldings, objktClient, OLDEST_ACTIVE_LISTING_MS } from "./objkt";
 import { getCardKey, parseTokenReference } from "./cardKey";
 import { normalizeObjktToken } from "./objktToken";
 import { PACK_MAX_PER_ARTIST, selectDiverseListings, shuffleArray } from "./pullDraw";
@@ -807,7 +807,7 @@ test("fetchRandomPack filters before the cheapest-per-token tiebreak", async () 
   }
 });
 
-test("fetchRandomPack samples three staggered windows in one request", async () => {
+test("fetchRandomPack samples a recent window and three deep windows in one request", async () => {
   const client = objktClient as unknown as {
     request: (document: string, variables?: Record<string, unknown>) => Promise<unknown>;
   };
@@ -821,21 +821,24 @@ test("fetchRandomPack samples three staggered windows in one request", async () 
       w1: [listingRow(1, "KT1A", "1", "artist-a")],
       w2: [listingRow(2, "KT1B", "2", "artist-b")],
       w3: [listingRow(3, "KT1C", "3", "artist-c")],
+      w4: [listingRow(4, "KT1D", "4", "artist-d")],
     };
   };
   Math.random = () => 0.5;
 
   try {
-    const { cards } = await fetchRandomPack(3);
+    const before = Date.now();
+    const { cards } = await fetchRandomPack(4);
+    const after = Date.now();
 
-    // One round trip, three offsets, each drawn from its own band so the
-    // sample is not a single contiguous block of listing IDs.
     assert.equal(requests.length, 1);
-    assert.deepEqual(
-      [requests[0]?.o1, requests[0]?.o2, requests[0]?.o3],
-      [400, 2_900, 12_500],
-    );
-    assert.equal(cards.length, 3);
+    assert.equal(requests[0]?.recent, 10_000);
+    for (const key of ["t2", "t3", "t4"]) {
+      const cutoff = Date.parse(String(requests[0]?.[key]));
+      assert.ok(cutoff >= Math.floor((OLDEST_ACTIVE_LISTING_MS + before) / 2), `${key} is at least the midpoint`);
+      assert.ok(cutoff <= (OLDEST_ACTIVE_LISTING_MS + after) / 2, `${key} is at most the midpoint`);
+    }
+    assert.equal(cards.length, 4);
   } finally {
     client.request = originalRequest;
     Math.random = originalRandom;

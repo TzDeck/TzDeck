@@ -15,6 +15,10 @@ TzDeck turns artwork listed on [OBJKT](https://objkt.com/) into trading cards. C
 
 TzDeck is a discovery layer, not a marketplace. It does not mint, sell, or transfer NFTs. Collection activity happens through OBJKT and its Tezos marketplace contracts.
 
+### Booster pack draw
+
+A pack draws from four windows of active OBJKT listings, fetched in one request. One window lands somewhere in the newest 20,000 listings, about the last three weeks. The other three each start at a random moment between September 2022, when the oldest active listing was made, and now. So a pack can turn up art from any era of the market, not just this month's. No more than two cards in a pack come from one artist. `npm run check:diversity` draws 60 live packs and reports artist spread, listing age, and the rarity mix.
+
 ### Booster pack filtering
 
 Booster packs exclude tokens that OBJKT has flagged, tokens from collections that are no longer live, tokens with a flagged creator, and anything on TzDeck's own denylist. Roughly 99% of active listings pass, and every exclusion is recorded with the rule that caused it. See `docs/pull-filter-spec.md`.
@@ -177,7 +181,7 @@ NEXT_PUBLIC_TEZOS_RPC_URL=https://mainnet.api.tez.ie
 npm test                  # Run the automated test suite
 npm run lint              # Check the code with ESLint
 npm run calibrate:rarity  # Verify rarity tiers against 500 live listings
-npm run check:diversity   # Verify packs draw from several artists
+npm run check:diversity   # Measure 60 live packs: artist spread, listing age, rarity mix (-- <n> for n packs)
 npm run migrate           # Apply battle-system database migrations
 npm run migrate:status    # Print the migration plan without writing to the database
 npm run denylist          # Manage the booster-pack denylist (--list, --add, --remove)
