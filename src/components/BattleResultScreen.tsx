@@ -255,9 +255,10 @@ function CardFace({
               className={`font-display font-bold tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] ${
                 cue.motion === "critical" ? "text-lg text-rarity-legendary" : "text-sm text-text-primary"
               }`}
-              initial={{ opacity: 0, y: 0, scale: 0.8 }}
-              animate={{ opacity: [0, 1, 1, 0], y: -28, scale: 1 }}
-              transition={{ duration: 0.5, delay: IMPACT_DELAY_S, times: [0, 0.15, 0.7, 1], ease: "easeOut" }}
+              // Hidden until impact, then it rises and fades on the same curve, so it's gone as it reaches the top.
+              initial={{ opacity: 0, y: 0 }}
+              animate={{ opacity: [1, 0], y: [0, -32] }}
+              transition={{ duration: 0.5, delay: IMPACT_DELAY_S, ease: "easeOut" }}
             >
               -{Math.round(cue.damage)}
             </motion.span>
