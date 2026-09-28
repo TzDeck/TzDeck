@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { motion, useAnimationControls, type TargetAndTransition } from "framer-motion";
 import { fetchTokenByKey } from "@/lib/objkt";
 import { formatShortAddress, isImageArtifact, type NFTCard as NFTCardType } from "@/lib/card";
 import { parseCardKey } from "@/lib/cardKey";
@@ -76,7 +77,58 @@ function combatBeats(history: RoundRecord[] | undefined, attackerMaxHp: number, 
   return beats;
 }
 
-function CardFace({ card, side, trainerTier }: { card: NFTCardType | null; side: "attacker" | "defender"; trainerTier?: CardRarity }) {
+/**
+ * What an avatar does on the beat just revealed: the side swinging leans in
+ * toward the other, and the side taking a hit shakes, harder on a critical.
+ * A miss leaves the target still. `beat` changes every reveal, so the same
+ * motion twice in a row still replays.
+ */
+type AvatarMotion = "lunge" | "hit" | "critical";
+
+interface AvatarCue {
+  beat: number;
+  motion: AvatarMotion;
+}
+
+/** Seconds into the beat when the lunge reaches the defender; the shake starts there. */
+const IMPACT_DELAY_S = 0.12;
+
+function avatarKeyframes(motionKind: AvatarMotion, side: "attacker" | "defender"): TargetAndTransition {
+  // Attacker sits on the left, defender on the right: "toward" is +x for one, -x for the other.
+  const toward = side === "attacker" ? 1 : -1;
+  if (motionKind === "lunge") {
+    return {
+      x: [0, 18 * toward, 0],
+      rotate: [0, 4 * toward, 0],
+      transition: { duration: 0.35, times: [0, 0.35, 1], ease: "easeOut" },
+    };
+  }
+  const amplitude = motionKind === "critical" ? 10 : 5;
+  return {
+    x: [0, -amplitude, amplitude, -amplitude * 0.7, amplitude * 0.7, -amplitude * 0.3, 0],
+    rotate: motionKind === "critical" ? [0, -3, 3, -2, 2, 0, 0] : 0,
+    transition: { duration: motionKind === "critical" ? 0.45 : 0.35, delay: IMPACT_DELAY_S, ease: "easeInOut" },
+  };
+}
+
+function avatarCue(beat: CombatBeat | undefined, beatNumber: number, side: "attacker" | "defender"): AvatarCue | null {
+  if (!beat) return null;
+  if (beat.side === side) return { beat: beatNumber, motion: "lunge" };
+  if (beat.result === "miss") return null;
+  return { beat: beatNumber, motion: beat.result === "critical" ? "critical" : "hit" };
+}
+
+function CardFace({
+  card,
+  side,
+  trainerTier,
+  cue,
+}: {
+  card: NFTCardType | null;
+  side: "attacker" | "defender";
+  trainerTier?: CardRarity;
+  cue?: AvatarCue | null;
+}) {
   const sources = useMemo(
     () => (card
       ? getCardImageSources(
@@ -91,27 +143,38 @@ function CardFace({ card, side, trainerTier }: { card: NFTCardType | null; side:
   const rarityConfig = RARITY_CONFIG[trainerTier ?? card?.rarity ?? "common"];
   const trainerName = trainerTier ? trainerDisplayName(trainerTier) : null;
   const avatarSvg = useMemo(() => (trainerTier ? trainerAvatarSvg(trainerTier) : null), [trainerTier]);
+  const controls = useAnimationControls();
+
+  useEffect(() => {
+    if (!cue) return;
+    // MotionPreferences' reducedMotion="user" turns these transforms into an
+    // instant jump to the end state, which is the resting position.
+    controls.start(avatarKeyframes(cue.motion, side));
+  }, [cue, controls, side]);
 
   return (
     <div className="flex flex-col items-center gap-2 text-center">
-      <div
-        className={`flex h-28 w-28 items-center justify-center overflow-hidden rounded-xl border border-border-subtle bg-surface-2 transition-all sm:h-36 sm:w-36 ${trainerTier || card ? rarityConfig.ring : ""} ${trainerTier || card ? rarityConfig.glow : ""}`}
-      >
-        {avatarSvg ? (
-          <div className="h-full w-full [&>svg]:h-full [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: avatarSvg }} />
-        ) : card && imageUrl && !failed ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={imageUrl}
-            alt={card.name}
-            className={`h-full w-full object-cover transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}
-            onLoad={handleLoad}
-            onError={handleError}
-          />
-        ) : (
-          <span className="text-xs text-text-tertiary">{card ? card.name : side === "defender" ? "Loading…" : ""}</span>
-        )}
-      </div>
+      {/* A wrapper, not the box itself: the box's CSS transition-all would chase every transform frame. */}
+      <motion.div animate={controls} data-avatar-motion={cue?.motion ?? "idle"} data-testid={`${side}-avatar`}>
+        <div
+          className={`flex h-28 w-28 items-center justify-center overflow-hidden rounded-xl border border-border-subtle bg-surface-2 transition-all sm:h-36 sm:w-36 ${trainerTier || card ? rarityConfig.ring : ""} ${trainerTier || card ? rarityConfig.glow : ""}`}
+        >
+          {avatarSvg ? (
+            <div className="h-full w-full [&>svg]:h-full [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: avatarSvg }} />
+          ) : card && imageUrl && !failed ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={imageUrl}
+              alt={card.name}
+              className={`h-full w-full object-cover transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}
+              onLoad={handleLoad}
+              onError={handleError}
+            />
+          ) : (
+            <span className="text-xs text-text-tertiary">{card ? card.name : side === "defender" ? "Loading…" : ""}</span>
+          )}
+        </div>
+      </motion.div>
       <p className="max-w-[9rem] truncate text-xs font-semibold text-text-primary">
         {trainerName ?? (card ? card.name : side === "defender" ? "Loading…" : "")}
       </p>
@@ -243,6 +306,8 @@ export default function BattleResultScreen({
   const lastRevealed = beats[revealedBeats - 1];
   const attackerHp = lastRevealed ? lastRevealed.hpA : attackerMaxHp;
   const defenderHp = lastRevealed ? lastRevealed.hpB : defenderMaxHp;
+  const attackerCue = useMemo(() => avatarCue(lastRevealed, revealedBeats, "attacker"), [lastRevealed, revealedBeats]);
+  const defenderCue = useMemo(() => avatarCue(lastRevealed, revealedBeats, "defender"), [lastRevealed, revealedBeats]);
 
   return (
     // Opaque, with the app's own backdrop drawn inside: a translucent, blurred
@@ -269,7 +334,7 @@ export default function BattleResultScreen({
 
         <div className="flex items-center justify-center gap-4 sm:gap-8">
           <div className="flex flex-1 flex-col items-center gap-2">
-            <CardFace card={attackerCard} side="attacker" />
+            <CardFace card={attackerCard} side="attacker" cue={attackerCue} />
             <HealthBar label="You" current={attackerHp} max={attackerMaxHp} side="attacker" />
             <PowerStat power={result.attackerStats?.power} />
           </div>
@@ -280,7 +345,7 @@ export default function BattleResultScreen({
             VS
           </div>
           <div className="flex flex-1 flex-col items-center gap-2">
-            <CardFace card={defenderCard} side="defender" trainerTier={result.trainerTier} />
+            <CardFace card={defenderCard} side="defender" trainerTier={result.trainerTier} cue={defenderCue} />
             <HealthBar
               label={
                 result.trainerTier
