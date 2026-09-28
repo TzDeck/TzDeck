@@ -11,7 +11,7 @@ import { getCardKey } from "@/lib/cardKey";
 import { useDialogBehavior } from "@/hooks/useDialogBehavior";
 import { useFailoverImage } from "@/hooks/useFailoverImage";
 import { baseStatsFromSeed, deriveBaseSeed, xpThresholdForLevel } from "@/lib/battle/rules";
-import { ChevronLeftIcon, ChevronRightIcon, HeartIcon, ImageOffIcon, SwordsIcon } from "./icons";
+import { ChevronLeftIcon, ChevronRightIcon, HeartIcon, ImageOffIcon, SwordsIcon, TezIcon } from "./icons";
 import ShareCardButton from "./ShareCardButton";
 import { RARITY_CONFIG } from "./rarityStyles";
 
@@ -313,7 +313,9 @@ export default function NFTDetailsModal({
             {activeCard.price_xtz !== undefined && (
               <div className="rounded-xl border border-border-subtle bg-surface-2 p-3">
                 <dt className="text-xs text-text-tertiary">Listed Price</dt>
-                <dd className="mt-1 font-bold tabular-nums text-accent-hover">ꜩ {activeCard.price_xtz}</dd>
+                <dd className="mt-1 font-bold tabular-nums text-accent-hover">
+                  <TezIcon label="tez" /> {activeCard.price_xtz}
+                </dd>
               </div>
             )}
             {activeCard.quantity_owned !== undefined && (

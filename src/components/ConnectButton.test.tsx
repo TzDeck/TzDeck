@@ -42,12 +42,14 @@ afterEach(() => testingLibrary?.cleanup());
 
 const ADDRESS = "tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb";
 
-test("the compact header button keeps its name while it shows only the ꜩ on phones", async () => {
+test("the compact header button keeps its name while it shows only the tez sign on phones", async () => {
   const { render, screen, ConnectButton } = await loadTestHarness();
   render(<ConnectButton variant="quiet" compact />);
 
   const button = screen.getByRole("button", { name: "Connect Tezos Wallet" });
-  assert.equal(button.textContent, "ꜩConnect Tezos Wallet");
+  assert.equal(button.textContent, "Connect Tezos Wallet");
+  // Drawn, not typed: iOS has no font with ꜩ and printed a NO GLYPH box.
+  assert.ok(button.querySelector('svg[aria-hidden="true"]'), "the tez sign is an icon beside the label");
   assert.equal(screen.getByText("Connect Tezos Wallet").className, "max-sm:sr-only");
 });
 

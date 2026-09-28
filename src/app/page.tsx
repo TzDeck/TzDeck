@@ -11,6 +11,7 @@ import Footer from "@/components/Footer";
 import PageBackdrop from "@/components/PageBackdrop";
 import SectionTabs, { sectionPanelId, sectionTabId } from "@/components/SectionTabs";
 import SupportLink from "@/components/SupportLink";
+import TezText from "@/components/TezText";
 import { RARITY_CONFIG } from "@/components/rarityStyles";
 import { useWallet } from "@/context/WalletContext";
 import { getCardKey } from "@/lib/cardKey";
@@ -29,6 +30,7 @@ import {
   InfoIcon,
   SparklesIcon,
   SwordsIcon,
+  TezIcon,
 } from "@/components/icons";
 
 type ActiveTab = "packs" | "deck" | "wishlist" | "about";
@@ -184,7 +186,7 @@ export default function Home() {
                 ) : (
                   <div className="rounded-3xl border border-border-default bg-surface-1/80 p-12 text-center max-w-lg mx-auto my-12 backdrop-blur-md">
                     <div className="flex h-16 w-16 items-center justify-center rounded-full bg-accent-quiet border border-accent/30 text-3xl mx-auto mb-4">
-                      ꜩ
+                      <TezIcon />
                     </div>
                     <h3 className="text-xl font-bold text-text-primary">
                       Connect Your Tezos Wallet
@@ -284,7 +286,9 @@ export default function Home() {
                         >
                           <span aria-hidden="true" className={`h-2 w-2 shrink-0 rounded-full ${RARITY_CONFIG[tier].dot}`} />
                           <span className="font-semibold text-text-primary">{RARITY_CONFIG[tier].label}</span>
-                          <span>{RARITY_RULES[tier]}</span>
+                          <span>
+                            <TezText text={RARITY_RULES[tier]} />
+                          </span>
                         </span>
                       ))}
                     </div>

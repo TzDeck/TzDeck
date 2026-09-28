@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useWallet } from "@/context/WalletContext";
 import { formatShortAddress } from "@/lib/card";
-import { CheckIcon, CopyIcon, LogoutIcon } from "./icons";
+import { CheckIcon, CopyIcon, LogoutIcon, TezIcon } from "./icons";
 
 interface ConnectButtonProps {
   variant?: "primary" | "quiet";
@@ -79,7 +79,7 @@ export default function ConnectButton({ variant = "primary", compact = false }: 
       disabled={isConnecting}
       className={`${variant === "primary" ? "button-primary" : "button-quiet"} gap-2 px-4 py-2 text-xs font-bold ${phoneSquare}`}
     >
-      <span aria-hidden="true">ꜩ</span>
+      <TezIcon />
       <span className={phoneText}>{isConnecting ? "Connecting..." : "Connect Tezos Wallet"}</span>
     </button>
   );
