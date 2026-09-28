@@ -250,3 +250,22 @@ export function ImageOffIcon({ className = base }: IconProps) {
     </svg>
   );
 }
+
+/**
+ * The tez sign (ꜩ, U+A729) as a drawn glyph. Neither Inter, Oxanium nor iOS's
+ * system fonts carry the character, so Safari on iPhone printed a "NO GLYPH"
+ * box wherever the text had it. The outline is DejaVu Sans Bold's own ꜩ.
+ * Sized in em so it tracks the surrounding text like the character did.
+ */
+export function TezIcon({ className = "", label }: IconProps & { label?: string }) {
+  return (
+    <svg
+      {...(label ? { role: "img", "aria-label": label } : { "aria-hidden": true })}
+      className={`inline-block h-[1em] w-[1em] shrink-0 align-[-0.125em] ${className}`}
+      fill="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path d="M2.88 5.06L4.87 5.06L4.87 1.50L8.87 1.50L8.87 5.06L19.78 5.06L19.78 7.85L15.10 12.70Q16.90 12.81 17.88 13.06Q19.26 13.43 20.24 14.69Q21.12 15.85 21.12 17.43Q21.12 19.92 19.22 21.20Q17.31 22.50 13.67 22.50Q12.31 22.50 11.09 22.30Q9.80 22.09 8.54 21.67L8.54 18.35Q9.72 18.94 10.93 19.26Q12.14 19.57 13.28 19.57Q14.99 19.57 15.90 18.98Q16.81 18.38 16.81 17.28Q16.81 16.14 15.87 15.54Q14.95 14.96 13.12 14.96L12.65 14.96L12.65 17.58L9.22 17.58Q6.85 17.58 5.86 16.59Q4.87 15.60 4.87 13.23L4.87 7.92L2.88 7.92ZM15.17 7.92L8.87 7.92L8.87 13.23Q8.87 14.10 9.22 14.41Q9.57 14.72 10.60 14.72L11.03 14.72L11.03 12.22Z" />
+    </svg>
+  );
+}

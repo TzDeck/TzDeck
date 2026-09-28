@@ -7,7 +7,7 @@ import NFTCard from "./NFTCard";
 import { trackFunnelEvent } from "@/lib/analytics";
 import { soundManager } from "@/lib/sound";
 import { motion, AnimatePresence } from "framer-motion";
-import { SparklesIcon, SwordsIcon } from "./icons";
+import { SparklesIcon, SwordsIcon, TezIcon } from "./icons";
 import Image from "next/image";
 
 interface PackOpeningProps {
@@ -266,7 +266,7 @@ export default function PackOpening({
                 className="flex items-center gap-4 text-7xl font-black text-accent-hover"
               >
                 <SparklesIcon className="h-10 w-10" />
-                <span>ꜩ</span>
+                <TezIcon />
                 <SparklesIcon className="h-10 w-10" />
               </motion.div>
               <h3 className="mt-4 text-2xl font-bold text-text-primary tracking-wide animate-pulse">

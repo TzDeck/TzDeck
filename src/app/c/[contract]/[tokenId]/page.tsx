@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { RARITY_CONFIG } from "@/components/rarityStyles";
+import { TezIcon } from "@/components/icons";
 import ShareCardButton from "@/components/ShareCardButton";
 import SharedCardArtwork from "@/components/SharedCardArtwork";
 import { getArtistProfileUrl, getCollectionUrl, distinctCollectionName, type NFTCard } from "@/lib/card";
@@ -134,7 +135,13 @@ export default async function SharedCardPage({ params }: Props) {
                   card.price_xtz !== undefined ? rarity.text : "text-text-tertiary"
                 }`}
               >
-                {card.price_xtz !== undefined ? `ꜩ ${card.price_xtz}` : "Not listed"}
+                {card.price_xtz !== undefined ? (
+                  <>
+                    <TezIcon label="tez" /> {card.price_xtz}
+                  </>
+                ) : (
+                  "Not listed"
+                )}
               </dd>
             </div>
           </dl>

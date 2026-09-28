@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import NFTDetailsModal, { type BattleCardStats } from "./NFTDetailsModal";
 import { RARITY_CONFIG } from "./rarityStyles";
-import { ExternalLinkIcon, HeartIcon, ImageOffIcon, SwordsIcon } from "./icons";
+import { ExternalLinkIcon, HeartIcon, ImageOffIcon, SwordsIcon, TezIcon } from "./icons";
 
 interface NFTCardProps {
   card: NFTCardType;
@@ -247,7 +247,7 @@ export default function NFTCard({
 
             {card.price_xtz !== undefined && (
               <div className="art-chip art-chip-accent pointer-events-none absolute bottom-2 right-2 flex items-center gap-1 rounded-md px-2 py-0.5 text-2xs font-bold tabular-nums text-accent-hover">
-                <span>ꜩ</span>
+                <TezIcon label="tez" />
                 <span>{card.price_xtz}</span>
               </div>
             )}

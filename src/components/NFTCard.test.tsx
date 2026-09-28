@@ -121,7 +121,9 @@ test("clicking visible card artwork opens a modal with token information", async
   assert.ok(modal.getByText("Editions"));
   assert.ok(modal.getByText("3"));
   assert.ok(modal.getByText("Listed Price"));
-  assert.ok(modal.getByText("ꜩ 25"));
+  const listedPrice = modal.getByText("Listed Price").nextElementSibling;
+  assert.equal(listedPrice?.textContent?.trim(), "25");
+  assert.ok(within(listedPrice as HTMLElement).getByRole("img", { name: "tez" }), "the price carries the drawn tez sign");
   assert.ok(modal.getByText("Owned"));
   assert.ok(modal.getByText("2"));
   assert.ok(modal.getByText("KT1ExampleContract"));
