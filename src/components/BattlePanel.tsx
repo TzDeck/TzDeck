@@ -8,6 +8,7 @@ import { getCardKey } from "@/lib/cardKey";
 import { isImageArtifact, type NFTCard as NFTCardType } from "@/lib/card";
 import { RARITY_TIERS, type CardRarity } from "@/lib/rarity";
 import { useFailoverImage } from "@/hooks/useFailoverImage";
+import { useContentReveal } from "@/hooks/useContentReveal";
 import { battleErrorMessage } from "@/lib/battle/errorMessages";
 import {
   baseStatsFromSeed,
@@ -21,6 +22,7 @@ import { RARITY_CONFIG } from "./rarityStyles";
 import Switch from "./Switch";
 import BattleResultScreen from "./BattleResultScreen";
 import { SwordsIcon } from "./icons";
+import ContentWarningCover from "./ContentWarningCover";
 
 export interface BattleResult {
   outcome: "win" | "draw" | "no_match";
@@ -311,6 +313,7 @@ export default function BattlePanel({ card, battleStatus, onClose }: BattlePanel
   );
   const { imageUrl: cardImageUrl, loaded: cardImageLoaded, failed: cardImageFailed, handleLoad: handleCardImageLoad, handleError: handleCardImageError } =
     useFailoverImage(cardImageSources);
+  const { hiddenBy: cardHiddenBy, reveal: revealCardArt } = useContentReveal(card);
 
   const ownCardStatus = status?.cards.find((c) => c.cardKey === cardKey);
   const previewStats = ownCardStatus ? null : previewStatsForCard(card);
@@ -528,7 +531,9 @@ export default function BattlePanel({ card, battleStatus, onClose }: BattlePanel
             <div
               className={`relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-border-subtle bg-surface-2 transition-all ${rarityConfig.ring} ${rarityConfig.glow}`}
             >
-              {!cardImageFailed && cardImageUrl ? (
+              {cardHiddenBy.length > 0 ? (
+                <ContentWarningCover warnings={cardHiddenBy} cardName={card.name} onReveal={revealCardArt} compact />
+              ) : !cardImageFailed && cardImageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={cardImageUrl}

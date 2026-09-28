@@ -40,7 +40,10 @@ const CACHE_DEGRADED = "public, max-age=0, s-maxage=60, stale-while-revalidate=6
 
 type Artwork =
   | { drawn: true; src: string }
-  | { drawn: false; reason: "animated" | "oversize" | "timeout" | "unreachable" };
+  | { drawn: false; reason: "animated" | "oversize" | "timeout" | "unreachable" }
+  // Explicit or flashing art never goes into a preview: a chat unfurls it with
+  // no click-to-reveal, in front of whoever is in the channel.
+  | { drawn: false; reason: "content_warning" };
 
 /**
  * The media type of `bytes` if resvg can decode it, and null if it cannot.
@@ -71,6 +74,8 @@ function sniffRasterisable(bytes: Buffer): "image/jpeg" | "image/png" | null {
  * animations their artwork and saves every large one.
  */
 async function loadArtwork(card: NFTCard): Promise<Artwork> {
+  if (card.content_warnings?.length) return { drawn: false, reason: "content_warning" };
+
   const abort = new AbortController();
   const deadline = setTimeout(() => abort.abort(), ARTWORK_TIMEOUT_MS);
 
@@ -403,6 +408,7 @@ export async function GET(_request: Request, { params }: Context) {
       ],
     },
   );
-  image.headers.set("Cache-Control", artwork.drawn ? CACHE_RESOLVED : CACHE_DEGRADED);
+  const settled = artwork.drawn || artwork.reason === "content_warning";
+  image.headers.set("Cache-Control", settled ? CACHE_RESOLVED : CACHE_DEGRADED);
   return image;
 }

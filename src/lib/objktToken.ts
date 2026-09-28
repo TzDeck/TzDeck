@@ -1,4 +1,10 @@
-import { formatShortAddress, getObjktAssetUrl, normalizeEditions, type NFTCard } from "./card";
+import {
+  formatShortAddress,
+  getObjktAssetUrl,
+  normalizeEditions,
+  type ContentWarning,
+  type NFTCard,
+} from "./card";
 import { convertIpfsUrl } from "./ipfs";
 import { rarityFor } from "./rarity";
 
@@ -15,6 +21,33 @@ export interface ObjktRawToken {
   mime?: string | null;
   creators?: Array<{ holder: { alias: string | null; address: string } }>;
   fa?: { name: string | null };
+  attributes?: Array<{ attribute: ObjktAttribute | null }> | null;
+}
+
+interface ObjktAttribute {
+  name: string | null;
+  type: string | null;
+  value: string | null;
+}
+
+/**
+ * OBJKT's content labels, as it stores them: token attributes of type
+ * `_objktcom`, which objkt.com reads to hide artwork behind "Content hidden".
+ * `__nsfw_` carries "true" or "false"; `__hazards_` names the hazard.
+ *
+ * Any `__nsfw_` value other than "false" counts as explicit. A malformed label
+ * is a reason to cover the art, not to show it.
+ */
+export function contentWarningsFor(token: Pick<ObjktRawToken, "attributes">): ContentWarning[] | undefined {
+  const warnings = new Set<ContentWarning>();
+  for (const entry of token.attributes ?? []) {
+    const attribute = entry?.attribute;
+    if (attribute?.type !== "_objktcom") continue;
+    const value = attribute.value?.trim().toLowerCase() ?? "";
+    if (attribute.name === "__nsfw_" && value !== "false") warnings.add("explicit");
+    if (attribute.name === "__hazards_" && value.includes("flashing")) warnings.add("flashing");
+  }
+  return warnings.size > 0 ? [...warnings].sort() : undefined;
 }
 
 /**
@@ -70,6 +103,7 @@ export function normalizeObjktToken(
     rarity: rarityFor(editions, priceXtz),
     quantity_owned: options.quantityOwned,
     mime: token.mime || undefined,
+    content_warnings: contentWarningsFor(token),
   };
 }
 

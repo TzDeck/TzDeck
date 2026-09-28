@@ -10,9 +10,11 @@ import { getCardImageSources } from "@/lib/ipfs";
 import { getCardKey } from "@/lib/cardKey";
 import { useDialogBehavior } from "@/hooks/useDialogBehavior";
 import { useFailoverImage } from "@/hooks/useFailoverImage";
+import { useContentReveal } from "@/hooks/useContentReveal";
 import { baseStatsFromSeed, deriveBaseSeed, xpThresholdForLevel } from "@/lib/battle/rules";
 import { ChevronLeftIcon, ChevronRightIcon, HeartIcon, ImageOffIcon, SwordsIcon, TezIcon } from "./icons";
 import ShareCardButton from "./ShareCardButton";
+import ContentWarningCover from "./ContentWarningCover";
 import { RARITY_CONFIG } from "./rarityStyles";
 
 export interface BattleCardStats {
@@ -89,6 +91,15 @@ function ModalVideo({ card }: { card: NFTCard }) {
 }
 
 function ModalArtwork({ card }: { card: NFTCard }) {
+  const { hiddenBy, reveal } = useContentReveal(card);
+  if (hiddenBy.length > 0) {
+    return (
+      <div className="relative aspect-square w-full max-w-md rounded-2xl bg-surface-2">
+        <ContentWarningCover warnings={hiddenBy} cardName={card.name} onReveal={reveal} />
+      </div>
+    );
+  }
+
   // Hooks below run unconditionally for image tokens; a video takes its own
   // branch first because it shares none of the failover machinery.
   if (isPlayableVideo(card)) return <ModalVideo card={card} />;

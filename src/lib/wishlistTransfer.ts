@@ -1,6 +1,6 @@
 import { fetchCardsByKeys } from "./objkt";
 import { getCardKey } from "./cardKey";
-import { getObjktAssetUrl, normalizeEditions, type NFTCard } from "./card";
+import { getObjktAssetUrl, normalizeEditions, type ContentWarning, type NFTCard } from "./card";
 import { isCardRarity, rarityFor } from "./rarity";
 
 /** Bumped only when the file shape changes incompatibly; `parseWishlistExport` stays lenient. */
@@ -38,6 +38,12 @@ function readSafeUrl(value: unknown): string | undefined {
   }
 }
 
+function readContentWarnings(value: unknown): ContentWarning[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const warnings = value.filter((item): item is ContentWarning => item === "explicit" || item === "flashing");
+  return warnings.length > 0 ? warnings : undefined;
+}
+
 function readCard(entry: unknown): NFTCard | null {
   if (typeof entry !== "object" || entry === null) return null;
 
@@ -72,6 +78,7 @@ function readCard(entry: unknown): NFTCard | null {
     // Absent on every wishlist saved before video playback existed, which is
     // correct: no mime means the card renders as an image, exactly as before.
     mime: readString(raw.mime),
+    content_warnings: readContentWarnings(raw.content_warnings),
   };
 }
 

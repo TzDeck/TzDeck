@@ -539,3 +539,28 @@ test("the details modal omits its Battle button when onBattle is not passed", as
   const modal = within(screen.getByRole("dialog", { name: card.name }));
   assert.equal(modal.queryByRole("button", { name: `Battle with ${card.name}` }), null);
 });
+
+test("an explicit card hides its artwork until the viewer chooses Show, then stays shown in details", async () => {
+  const { fireEvent, render, screen, within, NFTCard } = await loadTestHarness();
+  const { resetRevealedForTests } = await import("@/hooks/useContentReveal");
+  resetRevealedForTests();
+  const explicit: NFTCardType = { ...card, token_id: "99", content_warnings: ["explicit"] };
+
+  render(<NFTCard card={explicit} />);
+
+  assert.equal(screen.queryByRole("img", { name: explicit.name }), null, "no artwork is requested while covered");
+  assert.ok(screen.getByText("Explicit content"));
+  // The card's details stay reachable while the art is covered, and stay covered there too.
+  fireEvent.click(screen.getByRole("button", { name: `View details for ${explicit.name}` }));
+  const dialog = screen.getByRole("dialog", { name: explicit.name });
+  assert.equal(within(dialog).queryByRole("img", { name: explicit.name }), null);
+  fireEvent.click(within(dialog).getByRole("button", { name: "Close token details" }));
+
+  fireEvent.click(screen.getByRole("button", { name: `Show ${explicit.name} (explicit content)` }));
+
+  assert.ok(screen.getByRole("img", { name: explicit.name }));
+  assert.equal(screen.queryByText("Explicit content"), null);
+  fireEvent.click(screen.getByRole("button", { name: `View details for ${explicit.name}` }));
+  assert.ok(within(screen.getByRole("dialog", { name: explicit.name })).getByRole("img", { name: explicit.name }));
+  resetRevealedForTests();
+});

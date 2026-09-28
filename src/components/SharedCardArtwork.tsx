@@ -3,8 +3,10 @@
 import { useMemo } from "react";
 
 import { useFailoverImage } from "@/hooks/useFailoverImage";
+import { useContentReveal } from "@/hooks/useContentReveal";
 import { getCardImageSources } from "@/lib/ipfs";
 import { isImageArtifact, type NFTCard } from "@/lib/card";
+import ContentWarningCover from "./ContentWarningCover";
 import { ImageOffIcon } from "./icons";
 
 export default function SharedCardArtwork({ card }: { card: NFTCard }) {
@@ -17,6 +19,11 @@ export default function SharedCardArtwork({ card }: { card: NFTCard }) {
     [card],
   );
   const { imageUrl, loaded, failed, handleLoad, handleError } = useFailoverImage(sources);
+  const { hiddenBy, reveal } = useContentReveal(card);
+
+  if (hiddenBy.length > 0) {
+    return <ContentWarningCover warnings={hiddenBy} cardName={card.name} onReveal={reveal} />;
+  }
 
   if (failed || !imageUrl) {
     return (

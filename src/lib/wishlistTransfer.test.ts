@@ -224,6 +224,14 @@ test("a video token's mime survives the export round-trip", () => {
   assert.equal(parsed.cards[0].mime, "video/mp4");
 });
 
+test("a card's content warnings survive the export round-trip, and unknown ones are dropped", () => {
+  const labelled = card({ content_warnings: ["explicit", "bogus" as "explicit"] });
+
+  const parsed = parseWishlistExport(serializeWishlist([labelled]));
+
+  assert.deepEqual(parsed.cards[0].content_warnings, ["explicit"]);
+});
+
 test("a card saved before mime existed still imports", () => {
   // Wishlists already in localStorage predate the field entirely; absent must
   // mean "treat as an image", which is exactly the old behaviour.

@@ -34,6 +34,7 @@ const TOKEN_FIELDS = `
   description
   creators { holder { alias address } }
   fa { name }
+  attributes { attribute { name type value } }
 `;
 
 /**

@@ -5,7 +5,7 @@ import { distinctCollectionName, formatShortAddress, isImageArtifact, isPlayable
 import { convertIpfsUrl, extractIpfsHash, getCardImageSources } from "./ipfs";
 import { fetchCardsByKeys, fetchRandomPack, fetchTokenByKey, fetchUserHoldings, objktClient, OLDEST_ACTIVE_LISTING_MS } from "./objkt";
 import { getCardKey, parseTokenReference } from "./cardKey";
-import { normalizeObjktToken } from "./objktToken";
+import { contentWarningsFor, normalizeObjktToken } from "./objktToken";
 import { PACK_MAX_PER_ARTIST, selectDiverseListings, shuffleArray } from "./pullDraw";
 
 function listingRow(
@@ -269,6 +269,44 @@ test("normalizeObjktToken leaves mime undefined when OBJKT does not report one",
   });
 
   assert.equal(card.mime, undefined);
+});
+
+const objktLabel = (name: string, value: string | null) => ({ attribute: { name, type: "_objktcom", value } });
+
+test("normalizeObjktToken reads OBJKT's explicit and flashing labels into content warnings", () => {
+  const card = normalizeObjktToken({
+    name: "Labelled",
+    token_id: "5",
+    fa_contract: "KT1Labelled",
+    display_uri: "ipfs://QmStill",
+    artifact_uri: null,
+    thumbnail_uri: null,
+    supply: 1,
+    attributes: [
+      { attribute: { name: "Background", type: "string", value: "Blue" } },
+      objktLabel("__hazards_", "flashing"),
+      objktLabel("__nsfw_", "true"),
+    ],
+  });
+
+  assert.deepEqual(card.content_warnings, ["explicit", "flashing"]);
+});
+
+test("contentWarningsFor ignores unlabelled tokens and lookalike attributes", () => {
+  assert.equal(contentWarningsFor({}), undefined);
+  assert.equal(contentWarningsFor({ attributes: null }), undefined);
+  assert.equal(contentWarningsFor({ attributes: [{ attribute: null }] }), undefined);
+  assert.equal(contentWarningsFor({ attributes: [objktLabel("__nsfw_", "false")] }), undefined);
+  // An artist's own trait named like the label is not OBJKT's label.
+  assert.equal(
+    contentWarningsFor({ attributes: [{ attribute: { name: "__nsfw_", type: "string", value: "true" } }] }),
+    undefined,
+  );
+});
+
+test("contentWarningsFor covers the art when OBJKT's explicit label is malformed", () => {
+  assert.deepEqual(contentWarningsFor({ attributes: [objktLabel("__nsfw_", null)] }), ["explicit"]);
+  assert.deepEqual(contentWarningsFor({ attributes: [objktLabel("__nsfw_", " TRUE ")] }), ["explicit"]);
 });
 
 test("isPlayableVideo only accepts video tokens that carry a playable artifact", () => {
@@ -711,6 +749,7 @@ test("fetchRandomPack requests the fields the filter reads", async () => {
     assert.match(emittedQuery, /\bpk\b/);
     assert.match(emittedQuery, /\bflag\b/);
     assert.match(emittedQuery, /live/);
+    assert.match(emittedQuery, /attributes\s*{\s*attribute\s*{\s*name type value\s*}\s*}/);
     // activeWhere must NOT have grown moderation filters -- the rules run in code.
     assert.doesNotMatch(emittedQuery, /_not:\s*{\s*creators/);
   } finally {
