@@ -1,5 +1,6 @@
 "use client";
 
+import { setShowExplicit } from "@/hooks/useContentReveal";
 import type { ContentWarning } from "@/lib/card";
 import { EyeOffIcon } from "./icons";
 
@@ -68,6 +69,18 @@ export default function ContentWarningCover({
       >
         Show
       </button>
+      {warnings.includes("explicit") && (
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            setShowExplicit(true);
+          }}
+          className="pointer-events-auto text-2xs text-text-tertiary underline underline-offset-2 hover:text-text-primary"
+        >
+          Always show explicit content
+        </button>
+      )}
     </div>
   );
 }
