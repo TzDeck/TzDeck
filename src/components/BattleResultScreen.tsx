@@ -79,28 +79,44 @@ function combatBeats(history: RoundRecord[] | undefined, attackerMaxHp: number, 
 
 /**
  * What an avatar does on the beat just revealed: the side swinging leans in
- * toward the other, and the side taking a hit shakes, harder on a critical.
- * A miss leaves the target still. `beat` changes every reveal, so the same
- * motion twice in a row still replays.
+ * toward the other, and the side on the receiving end shakes (harder on a
+ * critical) or, on a miss, hops back out of the way. `beat` changes every
+ * reveal, so the same motion twice in a row still replays. On the final beat
+ * each side also carries its finale, played once that beat's motion ends.
  */
-type AvatarMotion = "lunge" | "hit" | "critical";
+type AvatarMotion = "lunge" | "hit" | "critical" | "dodge";
+type AvatarFinale = "victory" | "defeat";
 
 interface AvatarCue {
   beat: number;
   motion: AvatarMotion;
+  /** Damage taken this beat, for the number that floats up off a hit avatar. */
+  damage?: number;
+  finale?: AvatarFinale;
 }
 
-/** Seconds into the beat when the lunge reaches the defender; the shake starts there. */
+/** Seconds into the beat when the lunge reaches the defender; the reaction starts there. */
 const IMPACT_DELAY_S = 0.12;
 
+/** +x for the attacker on the left, -x for the defender on the right. */
+function towardOpponent(side: "attacker" | "defender"): number {
+  return side === "attacker" ? 1 : -1;
+}
+
 function avatarKeyframes(motionKind: AvatarMotion, side: "attacker" | "defender"): TargetAndTransition {
-  // Attacker sits on the left, defender on the right: "toward" is +x for one, -x for the other.
-  const toward = side === "attacker" ? 1 : -1;
+  const toward = towardOpponent(side);
   if (motionKind === "lunge") {
     return {
       x: [0, 18 * toward, 0],
       rotate: [0, 4 * toward, 0],
       transition: { duration: 0.35, times: [0, 0.35, 1], ease: "easeOut" },
+    };
+  }
+  if (motionKind === "dodge") {
+    return {
+      x: [0, -14 * toward, 0],
+      y: [0, -6, 0],
+      transition: { duration: 0.35, delay: IMPACT_DELAY_S, times: [0, 0.4, 1], ease: "easeOut" },
     };
   }
   const amplitude = motionKind === "critical" ? 10 : 5;
@@ -111,11 +127,33 @@ function avatarKeyframes(motionKind: AvatarMotion, side: "attacker" | "defender"
   };
 }
 
-function avatarCue(beat: CombatBeat | undefined, beatNumber: number, side: "attacker" | "defender"): AvatarCue | null {
+function finaleKeyframes(finale: AvatarFinale, side: "attacker" | "defender"): TargetAndTransition {
+  if (finale === "victory") {
+    return { y: [0, -14, 0, -6, 0], transition: { duration: 0.6, ease: "easeOut" } };
+  }
+  // The loser tips over away from the winner and stays down, drained of color.
+  const away = -towardOpponent(side);
+  return {
+    // Shrunk a touch so the tilted corner stays clear of the name below it.
+    x: 8 * away,
+    rotate: 10 * away,
+    scale: 0.92,
+    opacity: 0.55,
+    filter: "grayscale(1)",
+    transition: { duration: 0.6, ease: "easeIn" },
+  };
+}
+
+function avatarCue(
+  beat: CombatBeat | undefined,
+  beatNumber: number,
+  side: "attacker" | "defender",
+  finale: AvatarFinale | undefined,
+): AvatarCue | null {
   if (!beat) return null;
-  if (beat.side === side) return { beat: beatNumber, motion: "lunge" };
-  if (beat.result === "miss") return null;
-  return { beat: beatNumber, motion: beat.result === "critical" ? "critical" : "hit" };
+  if (beat.side === side) return { beat: beatNumber, motion: "lunge", finale };
+  if (beat.result === "miss") return { beat: beatNumber, motion: "dodge", finale };
+  return { beat: beatNumber, motion: beat.result === "critical" ? "critical" : "hit", damage: beat.damage, finale };
 }
 
 function CardFace({
@@ -144,36 +182,87 @@ function CardFace({
   const trainerName = trainerTier ? trainerDisplayName(trainerTier) : null;
   const avatarSvg = useMemo(() => (trainerTier ? trainerAvatarSvg(trainerTier) : null), [trainerTier]);
   const controls = useAnimationControls();
+  const defeated = cue?.finale === "defeat";
+  const tookHit = cue?.motion === "hit" || cue?.motion === "critical";
 
   useEffect(() => {
     if (!cue) return;
+    let cancelled = false;
     // MotionPreferences' reducedMotion="user" turns these transforms into an
-    // instant jump to the end state, which is the resting position.
-    controls.start(avatarKeyframes(cue.motion, side));
+    // instant jump to the end state: the resting position, or the finale's pose.
+    controls.start(avatarKeyframes(cue.motion, side)).then(() => {
+      if (!cancelled && cue.finale) controls.start(finaleKeyframes(cue.finale, side));
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [cue, controls, side]);
 
   return (
     <div className="flex flex-col items-center gap-2 text-center">
-      {/* A wrapper, not the box itself: the box's CSS transition-all would chase every transform frame. */}
-      <motion.div animate={controls} data-avatar-motion={cue?.motion ?? "idle"} data-testid={`${side}-avatar`}>
-        <div
-          className={`flex h-28 w-28 items-center justify-center overflow-hidden rounded-xl border border-border-subtle bg-surface-2 transition-all sm:h-36 sm:w-36 ${trainerTier || card ? rarityConfig.ring : ""} ${trainerTier || card ? rarityConfig.glow : ""}`}
+      {/* Idle breathing, on its own layer so it never fights the beat motions below. Offset per side so they don't bob in unison. */}
+      <motion.div
+        className="relative"
+        animate={defeated ? { y: 0 } : { y: [0, -3, 0] }}
+        transition={
+          defeated
+            ? { duration: 0.3 }
+            : { duration: 3.2, repeat: Infinity, ease: "easeInOut", delay: side === "attacker" ? 0 : 1.6 }
+        }
+      >
+        {/* A wrapper, not the box itself: the box's CSS transition-all would chase every transform frame. */}
+        <motion.div
+          animate={controls}
+          data-avatar-motion={cue?.motion ?? "idle"}
+          data-avatar-finale={cue?.finale ?? "none"}
+          data-testid={`${side}-avatar`}
         >
-          {avatarSvg ? (
-            <div className="h-full w-full [&>svg]:h-full [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: avatarSvg }} />
-          ) : card && imageUrl && !failed ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={imageUrl}
-              alt={card.name}
-              className={`h-full w-full object-cover transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}
-              onLoad={handleLoad}
-              onError={handleError}
-            />
-          ) : (
-            <span className="text-xs text-text-tertiary">{card ? card.name : side === "defender" ? "Loading…" : ""}</span>
-          )}
-        </div>
+          <div
+            className={`relative flex h-28 w-28 items-center justify-center overflow-hidden rounded-xl border border-border-subtle bg-surface-2 transition-all sm:h-36 sm:w-36 ${trainerTier || card ? rarityConfig.ring : ""} ${trainerTier || card ? rarityConfig.glow : ""}`}
+          >
+            {avatarSvg ? (
+              <div className="h-full w-full [&>svg]:h-full [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: avatarSvg }} />
+            ) : card && imageUrl && !failed ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={imageUrl}
+                alt={card.name}
+                className={`h-full w-full object-cover transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}
+                onLoad={handleLoad}
+                onError={handleError}
+              />
+            ) : (
+              <span className="text-xs text-text-tertiary">{card ? card.name : side === "defender" ? "Loading…" : ""}</span>
+            )}
+            {cue && tookHit ? (
+              <motion.div
+                key={cue.beat}
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 bg-danger"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: [0, cue.motion === "critical" ? 0.55 : 0.3, 0] }}
+                transition={{ duration: 0.3, delay: IMPACT_DELAY_S }}
+              />
+            ) : null}
+          </div>
+        </motion.div>
+        {cue && tookHit && cue.damage !== undefined ? (
+          // The log already says it in words, so the floating number is decoration.
+          <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 flex justify-center">
+            <motion.span
+              key={cue.beat}
+              data-testid={`${side}-damage`}
+              className={`font-display font-bold tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] ${
+                cue.motion === "critical" ? "text-lg text-rarity-legendary" : "text-sm text-text-primary"
+              }`}
+              initial={{ opacity: 0, y: 0, scale: 0.8 }}
+              animate={{ opacity: [0, 1, 1, 0], y: -28, scale: 1 }}
+              transition={{ duration: 0.5, delay: IMPACT_DELAY_S, times: [0, 0.15, 0.7, 1], ease: "easeOut" }}
+            >
+              -{Math.round(cue.damage)}
+            </motion.span>
+          </div>
+        ) : null}
       </motion.div>
       <p className="max-w-[9rem] truncate text-xs font-semibold text-text-primary">
         {trainerName ?? (card ? card.name : side === "defender" ? "Loading…" : "")}
@@ -306,8 +395,23 @@ export default function BattleResultScreen({
   const lastRevealed = beats[revealedBeats - 1];
   const attackerHp = lastRevealed ? lastRevealed.hpA : attackerMaxHp;
   const defenderHp = lastRevealed ? lastRevealed.hpB : defenderMaxHp;
-  const attackerCue = useMemo(() => avatarCue(lastRevealed, revealedBeats, "attacker"), [lastRevealed, revealedBeats]);
-  const defenderCue = useMemo(() => avatarCue(lastRevealed, revealedBeats, "defender"), [lastRevealed, revealedBeats]);
+  // The finale rides on the last beat, so it only plays once the whole fight has.
+  const finaleFor = (side: "attacker" | "defender"): AvatarFinale | undefined =>
+    sequenceComplete && result.outcome === "win" && result.winner
+      ? result.winner === side
+        ? "victory"
+        : "defeat"
+      : undefined;
+  const attackerFinale = finaleFor("attacker");
+  const defenderFinale = finaleFor("defender");
+  const attackerCue = useMemo(
+    () => avatarCue(lastRevealed, revealedBeats, "attacker", attackerFinale),
+    [lastRevealed, revealedBeats, attackerFinale],
+  );
+  const defenderCue = useMemo(
+    () => avatarCue(lastRevealed, revealedBeats, "defender", defenderFinale),
+    [lastRevealed, revealedBeats, defenderFinale],
+  );
 
   return (
     // Opaque, with the app's own backdrop drawn inside: a translucent, blurred

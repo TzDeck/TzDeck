@@ -598,7 +598,7 @@ test("the swinging avatar leans in and the one it hits shakes, beat by beat", as
   assert.equal(attackerAvatar.dataset.avatarMotion, "hit", "the attacker shakes when the counter lands");
 });
 
-test("a miss leaves the target still, and a critical shakes it harder than a plain hit", async () => {
+test("a miss makes the target dodge, and a critical shakes it harder than a plain hit", async () => {
   const { render, screen, BattleResultScreen } = await loadTestHarness();
   stubDefenderTokenFetch("Rival Card");
 
@@ -624,8 +624,64 @@ test("a miss leaves the target still, and a critical shakes it harder than a pla
 
   await screen.findByText(/My Fighter's hit missed!/);
   assert.equal(attackerAvatar.dataset.avatarMotion, "lunge", "a missed swing still leans in");
-  assert.equal(defenderAvatar.dataset.avatarMotion, "idle", "nothing landed, so the defender doesn't shake");
+  assert.equal(defenderAvatar.dataset.avatarMotion, "dodge", "nothing landed, so the defender hops clear instead of shaking");
+  assert.equal(screen.queryByTestId("defender-damage"), null, "a miss floats no damage number");
 
   await screen.findByText(/countered with a CRITICAL HIT/);
   assert.equal(attackerAvatar.dataset.avatarMotion, "critical", "a critical gets its own, stronger shake");
+  assert.equal(screen.getByTestId("attacker-damage").textContent, "-60", "the critical's real damage floats off the avatar it hit");
+});
+
+test("a hit floats its damage off the avatar that took it", async () => {
+  const { render, screen, BattleResultScreen } = await loadTestHarness();
+  stubDefenderTokenFetch("Rival Card");
+
+  render(
+    <BattleResultScreen
+      attackerCard={attackerCard}
+      result={baseResult()}
+      wasOverkillTiebreak={false}
+      onClose={() => {}}
+      beatDelayMs={150}
+    />,
+  );
+
+  await screen.findByText(/My Fighter hit for 30/);
+  assert.equal(screen.getByTestId("defender-damage").textContent, "-30");
+  assert.equal(screen.queryByTestId("attacker-damage"), null, "the side swinging takes no damage number");
+});
+
+test("once the fight ends the loser goes down and the winner celebrates; a draw has neither", async () => {
+  const { render, screen, BattleResultScreen, cleanup } = await loadTestHarness();
+  stubDefenderTokenFetch("Rival Card");
+
+  render(
+    <BattleResultScreen
+      attackerCard={attackerCard}
+      result={baseResult()}
+      wasOverkillTiebreak={false}
+      onClose={() => {}}
+      beatDelayMs={150}
+    />,
+  );
+
+  assert.equal(screen.getByTestId("attacker-avatar").dataset.avatarFinale, "none", "no finale while the fight is still playing");
+  await screen.findByText("Victory!");
+  assert.equal(screen.getByTestId("attacker-avatar").dataset.avatarFinale, "victory");
+  assert.equal(screen.getByTestId("defender-avatar").dataset.avatarFinale, "defeat");
+
+  cleanup();
+  render(
+    <BattleResultScreen
+      attackerCard={attackerCard}
+      result={baseResult({ outcome: "draw", winner: null })}
+      wasOverkillTiebreak={false}
+      onClose={() => {}}
+      beatDelayMs={5}
+    />,
+  );
+
+  await screen.findByText("Draw");
+  assert.equal(screen.getByTestId("attacker-avatar").dataset.avatarFinale, "none");
+  assert.equal(screen.getByTestId("defender-avatar").dataset.avatarFinale, "none");
 });
