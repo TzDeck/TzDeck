@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "capture": "node capture.mjs && node capture-back.mjs && node capture-battle.mjs",
+    "capture": "node capture.mjs",
+    "capture:screens": "node capture-back.mjs && node capture-battle.mjs",
     "stills": "node render.mjs --stills",
     "score": "node music.mjs",
     "render": "node render.mjs --fps 60 --sub 2",

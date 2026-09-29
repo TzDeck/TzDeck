@@ -197,7 +197,7 @@ npm run build             # Production build
 
 ## Promo video
 
-The `promo-video` Claude Code skill in `.claude/skills/promo-video/` makes a 20-second vertical promo from live captures of tzdeck.xyz: real packs, real cards and the demo battle, animated in code with a synthesized score. Ask Claude Code for a TzDeck promo video, or run `/promo-video`. Its studio installs its own dependencies (Playwright, ffmpeg-static, the brand fonts) in a work directory outside the repo, so the app's `package.json` is untouched.
+The `promo-video` Claude Code skill in `.claude/skills/promo-video/` makes a 20-second vertical promo from live captures of tzdeck.xyz: the pack, the demo battle, and TzDeck cards of one artist's own works, animated in code with a synthesized score. The cards come only from the artist asking for the promo, or one who agreed, so nobody's art is used without permission. Ask Claude Code for a TzDeck promo video, or run `/promo-video`. Its studio installs its own dependencies (Playwright, ffmpeg-static, the brand fonts) in a work directory outside the repo, so the app's `package.json` is untouched.
 
 ## Built with
 

@@ -50,19 +50,23 @@ function rng(seed) {
 }
 
 // ---------------------------------------------------------------- assets
-// The picks change every run: captured cards are named p<pack>-c<card> (see assets/cards.json).
-const HERO_CREDIT = '1 of 1  ·  Coronado #347 by jeres';
+// The picks change every run. Captured cards are named <last 6 of contract>-<token id>; their grades
+// and listing state are in assets/cards.json. The hero is the highest tier among listed works, since
+// a pack only deals listings, and its tier drives the peak's label and color.
+const HERO = { tier: 'epic', credit: '1 of 1  ·  Sequentia #72 by Nate Nolting' };
 const SRC = {
   pack: 'assets/pack.png',
   back: 'assets/back.png',
   battle: 'assets/battle.png',
   logo: 'assets/tzdeck-shield-gradient-on-dark.svg',
-  legendary: 'assets/cards/p7-c1.png',
+  hero: 'assets/cards/dTrRvr-34703.png',
 };
-const FLIP_CARDS = ['assets/cards/p2-c2.png', 'assets/cards/p5-c1.png', 'assets/cards/p3-c3.png', 'assets/cards/p5-c2.png'];
+const FLIP_CARDS = ['XjRJHY-175', 'uNgnVC-66', 's7RUR4-36', 'uNgnVC-8'].map((name) => `assets/cards/${name}.png`);
 const MARQUEE = [
-  'p0-c1', 'p1-c0', 'p1-c2', 'p1-c4', 'p2-c0', 'p2-c1', 'p3-c1', 'p3-c2', 'p3-c4', 'p4-c0', 'p4-c1', 'p4-c3',
-  'p5-c0', 'p5-c3', 'p5-c4', 'p6-c0', 'p6-c1', 'p6-c3', 'p6-c4', 'p7-c0', 'p7-c2', 'p7-c3', 'p7-c4', 'p0-c4',
+  'uNgnVC-77', 's7RUR4-123', 'dTrRvr-39865', 'XjRJHY-179', 'uNgnVC-72', 's7RUR4-94',
+  'dTrRvr-171578', 'dTrRvr-119322', 'uNgnVC-70', 's7RUR4-78', 'dTrRvr-39862', 'dTrRvr-113396',
+  'uNgnVC-61', 's7RUR4-116', 'dTrRvr-121104', 'XjRJHY-174', 'uNgnVC-59', 's7RUR4-27',
+  'dTrRvr-35577', 'dTrRvr-112304', 'uNgnVC-69', 's7RUR4-21', 'dTrRvr-162136', 's7RUR4-77',
 ].map((name) => `assets/cards/${name}.png`);
 
 const IMG = {};
@@ -242,19 +246,19 @@ const FAN = [0, 1, 2, 3, 4].map((i) => ({
 }));
 const FLIP_AT = { 0: b(Q.flips[0]), 4: b(Q.flips[1]), 1: b(Q.flips[2]), 3: b(Q.flips[3]) };
 const FLIP_FRONT = { 0: 0, 4: 1, 1: 2, 3: 3 };
-const LEGEND_FLIP = b(Q.legendary);
+const HERO_FLIP = b(Q.hero);
 
 function pull(t) {
-  riseText('Five cards.', W / 2, 330, t, b(Q.fan), { size: 120 }, b(Q.legendary - 1));
-  riseText('One of them might be gold.', W / 2, 420, t, b(Q.fan + 1), { size: 48, weight: 600, family: 'Inter', color: C.text2 }, b(Q.legendary - 1));
-  const tension = clamp((t - b(Q.breakdown)) / (LEGEND_FLIP - b(Q.breakdown)));
-  const push = 1 + 0.1 * clamp((t - b(Q.fan)) / (LEGEND_FLIP - b(Q.fan))) - 0.1 * spring(t - LEGEND_FLIP, 150, 20);
+  riseText('Five cards.', W / 2, 330, t, b(Q.fan), { size: 120 }, b(Q.hero - 1));
+  riseText('Every one graded.', W / 2, 420, t, b(Q.fan + 1), { size: 48, weight: 600, family: 'Inter', color: C.text2 }, b(Q.hero - 1));
+  const tension = clamp((t - b(Q.breakdown)) / (HERO_FLIP - b(Q.breakdown)));
+  const push = 1 + 0.1 * clamp((t - b(Q.fan)) / (HERO_FLIP - b(Q.fan))) - 0.1 * spring(t - HERO_FLIP, 150, 20);
   g.save();
   g.translate(W / 2, 1050); g.scale(push, push); g.translate(-W / 2, -1050);
   for (const i of [0, 4, 1, 3, 2]) {
     const f = FAN[i];
     const deal = spring(t - b(Q.fan) - Math.abs(i - 2) * 0.06, 230, 24);
-    const scatter = spring(t - LEGEND_FLIP - 0.15, 150, 22);
+    const scatter = spring(t - HERO_FLIP - 0.15, 150, 22);
     const outX = (i - 2) * 900;
     const x = lerp(W / 2, f.x, deal) + outX * scatter;
     const y = lerp(1250, f.y, deal) + 300 * scatter - (FLIP_AT[i] ? 26 * spring(t - FLIP_AT[i], 200, 20) : 0);
@@ -262,13 +266,13 @@ function pull(t) {
     const dim = i === 2 ? 1 : 1 - 0.45 * tension;
     if (i === 2) {
       const lift = spring(t - b(Q.breakdown), 120, 18);
-      const shake = t < LEGEND_FLIP ? Math.sin(t * 70) * 5 * tension : 0;
-      const grow = spring(t - LEGEND_FLIP, 150, 20);
+      const shake = t < HERO_FLIP ? Math.sin(t * 70) * 5 * tension : 0;
+      const grow = spring(t - HERO_FLIP, 150, 20);
       const cx = x + shake, cy = lerp(f.y - 70 * lift, 1040, grow);
-      const cw = lerp(w * (1 + 0.12 * lift), 720, grow) * (1 + 0.07 * clamp((t - LEGEND_FLIP - 0.6) / 2.4));
-      const glow = tension > 0 ? hexA(C.legendary, 0.9 * tension + 0.1 * grow) : null;
-      flipCard(IMG.legendary, cx, cy, cw, t, LEGEND_FLIP, { rot: f.rot * (1 - grow) + 0.02 * Math.sin(Math.max(0, t - LEGEND_FLIP - 0.6) * 1.8) * grow, glow, glowBlur: 60 + 80 * tension });
-      if (t > LEGEND_FLIP) legendaryFx(t, cx, cy, cw);
+      const cw = lerp(w * (1 + 0.12 * lift), 720, grow) * (1 + 0.07 * clamp((t - HERO_FLIP - 0.6) / 2.4));
+      const glow = tension > 0 ? hexA(C[HERO.tier], 0.9 * tension + 0.1 * grow) : null;
+      flipCard(IMG.hero, cx, cy, cw, t, HERO_FLIP, { rot: f.rot * (1 - grow) + 0.02 * Math.sin(Math.max(0, t - HERO_FLIP - 0.6) * 1.8) * grow, glow, glowBlur: 60 + 80 * tension });
+      if (t > HERO_FLIP) heroFx(t, cx, cy, cw);
     } else {
       flipCard(IMG.flips[FLIP_FRONT[i]], x, y, w, t, FLIP_AT[i], { rot: f.rot, alpha: dim * clamp(deal) * clamp(1 - scatter) });
     }
@@ -276,12 +280,12 @@ function pull(t) {
   g.restore();
 }
 
-function legendaryFx(t, cx, cy, cw) {
-  for (const [start, width] of [[LEGEND_FLIP, 14], [LEGEND_FLIP + 0.25, 6]]) {
+function heroFx(t, cx, cy, cw) {
+  for (const [start, width] of [[HERO_FLIP, 14], [HERO_FLIP + 0.25, 6]]) {
     const p = clamp((t - start) / 1.1);
     if (p <= 0 || p >= 1) continue;
     g.save();
-    g.strokeStyle = hexA(C.legendary, 0.8 * (1 - p));
+    g.strokeStyle = hexA(C[HERO.tier], 0.8 * (1 - p));
     g.lineWidth = width * (1 - p) + 1;
     g.beginPath();
     g.arc(cx, cy, 200 + 1200 * (1 - Math.pow(1 - p, 3)), 0, Math.PI * 2);
@@ -289,9 +293,9 @@ function legendaryFx(t, cx, cy, cw) {
     g.restore();
   }
   for (const start of [0.6, 1.9]) {
-  const sweep = (t - LEGEND_FLIP - start) / 0.9;
+  const sweep = (t - HERO_FLIP - start) / 0.9;
   if (sweep > 0 && sweep < 1) {
-    const ch = cw * IMG.legendary.height / IMG.legendary.width;
+    const ch = cw * IMG.hero.height / IMG.hero.width;
     g.save();
     roundRect(cx - cw / 2, cy - ch / 2, cw, ch, 44);
     g.clip();
@@ -306,8 +310,8 @@ function legendaryFx(t, cx, cy, cw) {
     g.restore();
   }
   }
-  riseText('LEGENDARY', W / 2, 300, t, LEGEND_FLIP + 0.35, { size: 150, color: C.legendary, tracking: 10 }, b(Q.collect - 0.5));
-  riseText(HERO_CREDIT, W / 2, 1720, t, LEGEND_FLIP + 0.85,
+  riseText(HERO.tier.toUpperCase(), W / 2, 300, t, HERO_FLIP + 0.35, { size: 150, color: C[HERO.tier], tracking: 10 }, b(Q.collect - 0.5));
+  riseText(HERO.credit, W / 2, 1720, t, HERO_FLIP + 0.85,
     { size: 48, weight: 600, family: 'Inter', color: C.text2 }, b(Q.collect - 0.5));
 }
 
@@ -403,7 +407,7 @@ function rarity(t) {
     g.save();
     g.translate(lerp(x, W / 2, collapse), lerp(y, 820, collapse));
     g.scale(s, s);
-    if (i === 4) { g.shadowColor = hexA(C.legendary, 0.8 * clamp((t - b(Q.rarity + 2)) / 0.3)); g.shadowBlur = 70; }
+    if (label.toLowerCase() === HERO.tier) { g.shadowColor = hexA(color, 0.8 * clamp((t - b(Q.rarity + 2)) / 0.3)); g.shadowBlur = 70; }
     roundRect(-cw / 2, -chh / 2, cw, chh, 66);
     g.fillStyle = C.s2; g.fill();
     g.shadowBlur = 0;
@@ -438,8 +442,8 @@ function lockup(t) {
 
 // ---------------------------------------------------------------- frame
 function draw(t) {
-  const legendGlow = clamp((t - LEGEND_FLIP) / 0.4) * (1 - clamp((t - b(Q.collect)) / 0.4));
-  background(t, legendGlow > 0.02 ? C.legendary : C.accent, 0.2 + 0.1 * legendGlow);
+  const heroGlow = clamp((t - HERO_FLIP) / 0.4) * (1 - clamp((t - b(Q.collect)) / 0.4));
+  background(t, heroGlow > 0.02 ? C[HERO.tier] : C.accent, 0.2 + 0.1 * heroGlow);
   if (t < b(Q.fan)) hook(t);
   if (t >= b(Q.fan) && t < b(Q.collect) + 0.6) {
     g.save();

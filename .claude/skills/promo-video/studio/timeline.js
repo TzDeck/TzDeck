@@ -10,8 +10,8 @@ globalThis.CUES = {
   burst: 5,             // light burst; the pack body drops away
   fan: 6,               // five card backs deal out
   flips: [8, 9, 10, 11],
-  breakdown: 12,        // drums drop out, the Legendary card lifts and shakes
-  legendary: 14,        // the Legendary flips
+  breakdown: 12,        // drums drop out, the hero card lifts and shakes
+  hero: 14,             // the hero card flips
   collect: 20,
   battle: 26,
   hits: [28, 29, 30, 31],

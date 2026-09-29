@@ -125,8 +125,8 @@ riser(b(Q.wobble[0]), b(Q.burst) - b(Q.wobble[0]), 0.2);
 rip(b(Q.tear));
 whoosh(b(Q.burst) - 0.1, 0.5, 0.35);
 
-// Groove from the fan-out to the lockup, with a breakdown before the Legendary flip.
-const BREAK = [b(Q.breakdown), b(Q.legendary)];
+// Groove from the fan-out to the lockup, with a breakdown before the hero flip.
+const BREAK = [b(Q.breakdown), b(Q.hero)];
 for (let beat = Q.fan; beat < Q.logo; beat++) {
   const t = b(beat);
   const inBreak = t >= BREAK[0] && t < BREAK[1];
@@ -143,11 +143,11 @@ for (let beat = Q.fan; beat < Q.logo; beat++) {
 for (let i = 0; i < 8; i++) clap(BREAK[0] + i * 0.125, 0.12 + i * 0.03);
 riser(BREAK[0], BREAK[1] - BREAK[0], 0.28);
 
-// Card flips on beats 8-11, then the Legendary.
+// Card flips on beats 8-11, then the hero.
 [-0.5, 0.5, -0.25, 0.25].forEach((pan, i) => flick(b(Q.flips[i]), 0.3, pan));
-impact(b(Q.legendary), 1.1);
-[81, 84, 88, 91].forEach((n, i) => bell(b(Q.legendary) + i * 0.06, n, 0.1, i % 2 ? 0.4 : -0.4, 1.2));
-add(b(Q.legendary), 2.2, 0.12, 0, (t) => noise() * Math.exp(-t * 2.2));
+impact(b(Q.hero), 1.1);
+[81, 84, 88, 91].forEach((n, i) => bell(b(Q.hero) + i * 0.06, n, 0.1, i % 2 ? 0.4 : -0.4, 1.2));
+add(b(Q.hero), 2.2, 0.12, 0, (t) => noise() * Math.exp(-t * 2.2));
 
 // Collect whip, battle slam and hits.
 whoosh(b(Q.collect) - 0.15, 0.45, 0.3, -0.2);
