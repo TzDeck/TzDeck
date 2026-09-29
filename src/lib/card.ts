@@ -1,5 +1,8 @@
 import type { CardRarity } from "./rarity";
 
+/** Why a card's artwork starts hidden behind a click-to-reveal cover. */
+export type ContentWarning = "explicit" | "flashing";
+
 export interface NFTCard {
   listing_id?: number;
   token_id: string;
@@ -20,6 +23,11 @@ export interface NFTCard {
   quantity_owned?: number;
   /** OBJKT's media type for the artifact, e.g. "image/png" or "video/mp4". */
   mime?: string;
+  /**
+   * OBJKT's own content labels. Absent means none known, which is also what
+   * a wishlist entry saved before this field existed carries.
+   */
+  content_warnings?: ContentWarning[];
 }
 
 /**

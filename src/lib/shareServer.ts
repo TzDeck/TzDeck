@@ -23,7 +23,9 @@ const loadSharedCardAcrossRequests = unstable_cache(
     const resolved = await fetchCardsByKeys([key], { throwOnError: true });
     return resolved.get(getCardKey(key)) ?? null;
   },
-  ["shared-card"],
+  // Versioned with the card's shape: an entry cached before content_warnings
+  // existed would otherwise unfurl explicit art for up to an hour after deploy.
+  ["shared-card", "content-warnings"],
   { revalidate: 3600 },
 );
 

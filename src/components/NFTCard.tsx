@@ -4,10 +4,12 @@ import React, { useCallback, useState, useMemo } from "react";
 import { distinctCollectionName, NFTCard as NFTCardType, isImageArtifact } from "@/lib/card";
 import { getCardImageSources } from "@/lib/ipfs";
 import { useFailoverImage } from "@/hooks/useFailoverImage";
+import { useContentReveal } from "@/hooks/useContentReveal";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import NFTDetailsModal, { type BattleCardStats } from "./NFTDetailsModal";
 import { RARITY_CONFIG } from "./rarityStyles";
+import ContentWarningCover from "./ContentWarningCover";
 import { ExternalLinkIcon, HeartIcon, ImageOffIcon, SwordsIcon, TezIcon } from "./icons";
 
 interface NFTCardProps {
@@ -63,6 +65,7 @@ export default function NFTCard({
     handleLoad,
     handleError: handleImageError,
   } = useFailoverImage(sources);
+  const { hiddenBy, reveal } = useContentReveal(card);
   const [isHovered, setIsHovered] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
@@ -208,7 +211,9 @@ export default function NFTCard({
           onClick={() => setIsDetailsOpen(true)}
           className="relative block h-full w-full cursor-zoom-in overflow-hidden text-left focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-hover"
         >
-          {!imageError && currentImageUrl ? (
+          {hiddenBy.length > 0 ? (
+            <div aria-hidden="true" className="h-full w-full bg-surface-2" />
+          ) : !imageError && currentImageUrl ? (
             <>
               {!imageLoaded && (
                 <div className="absolute inset-0 flex items-center justify-center bg-surface-1/80">
@@ -253,6 +258,9 @@ export default function NFTCard({
             )}
         </button>
 
+        {hiddenBy.length > 0 && (
+          <ContentWarningCover warnings={hiddenBy} cardName={card.name} onReveal={reveal} />
+        )}
       </div>
 
       {/* Card Info Details */}

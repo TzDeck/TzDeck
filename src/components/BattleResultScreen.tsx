@@ -8,11 +8,13 @@ import { parseCardKey } from "@/lib/cardKey";
 import { getCardImageSources } from "@/lib/ipfs";
 import type { CardRarity } from "@/lib/rarity";
 import { useFailoverImage } from "@/hooks/useFailoverImage";
+import { useContentReveal } from "@/hooks/useContentReveal";
 import { RARITY_CONFIG } from "./rarityStyles";
 import { OFFENSIVE_RECOVERY_HOURS, type RoundOutcome, type RoundRecord } from "@/lib/battle/rules";
 import { trainerAvatarSvg } from "@/lib/battle/trainerAvatar";
 import type { BattleResult } from "./BattlePanel";
 import PageBackdrop from "./PageBackdrop";
+import ContentWarningCover from "./ContentWarningCover";
 
 export const DEFAULT_BEAT_DELAY_MS = 650;
 
@@ -178,6 +180,7 @@ function CardFace({
     [card],
   );
   const { imageUrl, loaded, failed, handleLoad, handleError } = useFailoverImage(sources);
+  const { hiddenBy, reveal } = useContentReveal(card);
   const rarityConfig = RARITY_CONFIG[trainerTier ?? card?.rarity ?? "common"];
   const trainerName = trainerTier ? trainerDisplayName(trainerTier) : null;
   const avatarSvg = useMemo(() => (trainerTier ? trainerAvatarSvg(trainerTier) : null), [trainerTier]);
@@ -222,6 +225,8 @@ function CardFace({
           >
             {avatarSvg ? (
               <div className="h-full w-full [&>svg]:h-full [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: avatarSvg }} />
+            ) : card && hiddenBy.length > 0 ? (
+              <ContentWarningCover warnings={hiddenBy} cardName={card.name} onReveal={reveal} compact />
             ) : card && imageUrl && !failed ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img

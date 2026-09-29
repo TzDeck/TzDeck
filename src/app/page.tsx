@@ -7,6 +7,7 @@ import PackOpening from "@/components/PackOpening";
 import DemoBattle from "@/components/DemoBattle";
 import WishlistGrid from "@/components/WishlistGrid";
 import SoundToggle from "@/components/SoundToggle";
+import ExplicitContentToggle from "@/components/ExplicitContentToggle";
 import Footer from "@/components/Footer";
 import PageBackdrop from "@/components/PageBackdrop";
 import SectionTabs, { sectionPanelId, sectionTabId } from "@/components/SectionTabs";
@@ -122,6 +123,7 @@ export default function Home() {
 
           {/* Right Navigation & Wallet */}
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <ExplicitContentToggle />
             <SoundToggle />
             <ConnectButton variant="quiet" compact />
           </div>
