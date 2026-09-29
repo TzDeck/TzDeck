@@ -39,6 +39,7 @@ The studio's shape:
 
 ## Gotchas
 
+- A screenshot is a rectangle. Capture any rounded or shaped element (cards, the card back, the pack) with `shotAlone()` from `shot-alone.mjs`. It gives true alpha and clips to the element's own border radius, so neither the page background nor the rarity ring's corner arcs land in the corners.
 - Canvas silently ignores a `globalAlpha` outside [0, 1] and keeps the previous value. Spring overshoot then makes a fading element snap back to full opacity. Route every alpha through `fade()`.
 - A full-page screenshot at 3x takes about 0.7 s, longer than the app's half-second floating damage numbers. A capture timed between hits can still catch one, so `capture-battle.mjs` hides them with the screenshot's own `style` option. Any other transient app decoration the film replaces needs the same treatment.
 - On the site, **Open Another Pack** returns to the sealed pack. Capture has to click **Rip it open** again for each pack.

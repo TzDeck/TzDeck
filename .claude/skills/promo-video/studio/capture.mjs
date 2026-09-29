@@ -1,6 +1,7 @@
 // node capture.mjs [packs]  Captures real TzDeck screens and pulled cards into ./assets
 import { chromium } from 'playwright';
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { shotAlone } from './shot-alone.mjs';
 
 const SITE = 'https://tzdeck.xyz';
 const PACKS = Number(process.argv[2] ?? 8);
@@ -22,7 +23,7 @@ async function imagesSettled() {
 await page.goto(SITE, { waitUntil: 'networkidle' });
 await imagesSettled();
 await page.screenshot({ path: 'assets/home.png' });
-await page.locator('button[aria-label="Open booster pack"]').screenshot({ path: 'assets/pack.png', omitBackground: true });
+await shotAlone(page.locator('button[aria-label="Open booster pack"]'), 'assets/pack.png');
 
 const cards = [];
 for (let pack = 0; pack < PACKS; pack += 1) {
@@ -45,7 +46,7 @@ for (let pack = 0; pack < PACKS; pack += 1) {
     const root = roots.nth(i);
     const text = await root.innerText();
     const file = `assets/cards/p${pack}-c${i}.png`;
-    await root.screenshot({ path: file });
+    await shotAlone(root, file);
     const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
     cards.push({ file, rarity: lines[0]?.toLowerCase(), lines: lines.slice(0, 8) });
   }
