@@ -40,6 +40,7 @@ The studio's shape:
 ## Gotchas
 
 - Canvas silently ignores a `globalAlpha` outside [0, 1] and keeps the previous value. Spring overshoot then makes a fading element snap back to full opacity. Route every alpha through `fade()`.
+- A full-page screenshot at 3x takes about 0.7 s, longer than the app's half-second floating damage numbers. A capture timed between hits can still catch one, so `capture-battle.mjs` hides them with the screenshot's own `style` option. Any other transient app decoration the film replaces needs the same treatment.
 - On the site, **Open Another Pack** returns to the sealed pack. Capture has to click **Rip it open** again for each pack.
 - The studio files are UTF-8 with characters like `·` and `ꜩ`. Windows PowerShell 5.1 reads them as ANSI and garbles them on write, so edit them with Node or the editor tools.
 - The Windows `ffmpeg-static` build has no glob input. Stills are numbered `out/stills/%02d.png` for that reason.

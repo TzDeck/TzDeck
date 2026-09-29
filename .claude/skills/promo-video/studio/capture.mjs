@@ -58,10 +58,5 @@ await page.getByRole('tab', { name: /About/ }).click().catch(() => page.getByTex
 await page.locator('section[aria-labelledby="rarity-grading"]').scrollIntoViewIfNeeded();
 await page.locator('section[aria-labelledby="rarity-grading"]').screenshot({ path: 'assets/rarity.png' });
 
-await page.getByRole('tab', { name: /Deck/ }).click().catch(() => page.getByText('My Deck').first().click());
-await page.getByText('Watch a demo battle').click();
-await page.waitForTimeout(4_000);
-await page.screenshot({ path: 'assets/battle.png' });
-
 await browser.close();
 console.log(`captured ${cards.length} cards`);
