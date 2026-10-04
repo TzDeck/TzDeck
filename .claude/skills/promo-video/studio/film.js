@@ -385,7 +385,9 @@ function battle(t) {
   g.save();
   fade(clamp(1 - exit));
   riseText('BATTLE.', W / 2, 470, t, b(Q.battle), { size: 210, tracking: 6 });
-  riseText('Fight other collectors. Win XP.', W / 2, 1640, t, b(Q.battle + 1.5),
+  riseText('Fight other collectors.', W / 2, 1640, t, b(Q.battle + 1.5),
+    { size: 48, weight: 600, family: 'Inter', color: C.text2 });
+  riseText('Gain XP & level up.', W / 2, 1710, t, b(Q.battle + 2),
     { size: 48, weight: 600, family: 'Inter', color: C.text2 });
   g.restore();
 }
