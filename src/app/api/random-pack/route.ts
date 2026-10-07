@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchRandomPack } from "@/lib/objkt";
+import { attachSalesContext } from "@/lib/packSales";
 import { loadDenylist, scheduleExclusionWrite } from "@/lib/pullStore";
 
 // The pack is drawn server-side, so a shared CDN cache would hand every visitor
@@ -21,7 +22,10 @@ async function handleGeneratePack(countParam: unknown) {
     // Never throws: a database failure degrades the filter to the three OBJKT
     // rules rather than failing the pack.
     const denylist = await loadDenylist();
-    const { cards, excluded } = await fetchRandomPack(count, denylist);
+    const draw = await fetchRandomPack(count, denylist);
+    const { excluded } = draw;
+    // A second OBJKT request, after the draw; never fails the pack.
+    const cards = await attachSalesContext(draw.cards);
 
     if (!cards || cards.length === 0) {
       return NextResponse.json(

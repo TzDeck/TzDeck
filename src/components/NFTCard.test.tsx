@@ -602,3 +602,50 @@ test("Always show explicit content uncovers every explicit card and sticks, but 
     resetRevealedForTests();
   }
 });
+
+test("a pulled card's details show its last 30 days of sales, factually", async () => {
+  const { fireEvent, render, screen, userEvent, NFTCard, within } = await loadTestHarness();
+  const user = userEvent.setup({ document });
+  render(
+    <NFTCard
+      card={{
+        ...card,
+        sales: { sales_30d: 7, sales_30d_capped: false, median_sale_xtz: 12, cheapest_other_listing_xtz: 9.5 },
+      }}
+      isWishlisted={false}
+      onToggleWishlist={() => {}}
+    />,
+  );
+
+  fireEvent.load(screen.getByRole("img", { name: card.name }));
+  await user.click(screen.getByRole("button", { name: `View details for ${card.name}` }));
+  const modal = within(screen.getByRole("dialog", { name: card.name }));
+
+  const sales = modal.getByText("Last 30 days").parentElement as HTMLElement;
+  assert.match(sales.textContent ?? "", /7 sales · median\s*12/);
+  assert.match(sales.textContent ?? "", /Cheapest other edition listed:\s*9\.5/);
+  assert.doesNotMatch(sales.textContent ?? "", /deal|bargain|steal/i);
+});
+
+test("card details say 'No sales' for a quiet token, and show nothing when sales are unknown", async () => {
+  const { fireEvent, render, screen, userEvent, NFTCard, within, cleanup } = await loadTestHarness();
+  const user = userEvent.setup({ document });
+  render(
+    <NFTCard
+      card={{ ...card, sales: { sales_30d: 0, sales_30d_capped: false } }}
+      isWishlisted={false}
+      onToggleWishlist={() => {}}
+    />,
+  );
+  fireEvent.load(screen.getByRole("img", { name: card.name }));
+  await user.click(screen.getByRole("button", { name: `View details for ${card.name}` }));
+  let modal = within(screen.getByRole("dialog", { name: card.name }));
+  assert.equal(modal.getByText("Last 30 days").nextElementSibling?.textContent, "No sales");
+
+  cleanup();
+  render(<NFTCard card={card} isWishlisted={false} onToggleWishlist={() => {}} />);
+  fireEvent.load(screen.getByRole("img", { name: card.name }));
+  await user.click(screen.getByRole("button", { name: `View details for ${card.name}` }));
+  modal = within(screen.getByRole("dialog", { name: card.name }));
+  assert.equal(modal.queryByText("Last 30 days"), null);
+});
