@@ -35,6 +35,10 @@ npm run denylist -- --remove KT1… [--token <id>]
 
 Entries take effect within 60 seconds, across instances, without a deploy. A `--token` id denylists one token; omitting it denylists the whole contract.
 
+### Pack API
+
+`GET /api/random-pack?count=5` (or `POST` with `{ "count": 5 }`) returns one pack of 3 to 10 cards. Anyone may call it, including other projects. Each pack costs TzDeck several OBJKT queries, so it is limited to 30 packs per minute per IP across both methods. Past that it answers `429` with a `Retry-After` header. Please send a `User-Agent` that names your project. The limit needs `DATABASE_URL`; without a database, packs are served unmetered.
+
 ## Rarity system
 
 TzDeck rarity is a deterministic display classification, not an on-chain NFT trait or a weighted pull probability. After a card is selected, TzDeck assigns the first matching tier from highest to lowest using the token's total edition supply and current OBJKT listing price:
