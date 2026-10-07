@@ -74,7 +74,10 @@ function tokenWhere(card: NFTCard): string {
 
 /**
  * One OBJKT request for every card in a pack: per token, its sales in the
- * last SALES_WINDOW_DAYS and its active listings, aliased s0/l0, s1/l1, ...
+ * last SALES_WINDOW_DAYS and its active listings, aliased s0/o0/l0, s1/o1/l1,
+ * ... A sale is either a listing bought (listing_sale) or an offer accepted
+ * (offer_sale); counting only the first would undercount tokens that trade
+ * mostly by offer.
  *
  * Never throws. Sales context is extra: if the query fails, the pack is
  * served exactly as before, just without it.
@@ -85,6 +88,11 @@ export async function attachSalesContext(cards: NFTCard[], now: number = Date.no
   const since = new Date(now - SALES_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
   const fields = cards.map((card, index) => `
     s${index}: listing_sale(
+      where: { ${tokenWhere(card)}, timestamp: { _gte: $since } },
+      order_by: { timestamp: desc },
+      limit: ${SALES_PER_TOKEN_LIMIT}
+    ) { price }
+    o${index}: offer_sale(
       where: { ${tokenWhere(card)}, timestamp: { _gte: $since } },
       order_by: { timestamp: desc },
       limit: ${SALES_PER_TOKEN_LIMIT}
@@ -103,11 +111,15 @@ export async function attachSalesContext(cards: NFTCard[], now: number = Date.no
     );
 
     return cards.map((card, index) => {
-      const sales = data?.[`s${index}`];
+      const listingSales = data?.[`s${index}`];
+      const offerSales = data?.[`o${index}`];
       const listings = data?.[`l${index}`];
       // A token missing from the response is unknown, not "no sales".
-      if (!Array.isArray(sales) || !Array.isArray(listings)) return card;
-      return { ...card, sales: summarizeSales(sales, listings as ListingRow[], card.listing_id) };
+      if (!Array.isArray(listingSales) || !Array.isArray(offerSales) || !Array.isArray(listings)) return card;
+      const context = summarizeSales([...listingSales, ...offerSales], listings as ListingRow[], card.listing_id);
+      // Each table is capped separately, so either hitting its cap makes the total a lower bound.
+      const capped = listingSales.length >= SALES_PER_TOKEN_LIMIT || offerSales.length >= SALES_PER_TOKEN_LIMIT;
+      return { ...card, sales: { ...context, sales_30d_capped: capped } };
     });
   } catch (err) {
     console.warn(`OBJKT sales context unavailable for ${cards.map(getCardKey).join(", ")}:`, err);

@@ -77,9 +77,11 @@ test("attachSalesContext: one request covers every card, 30 days back, matched b
     documents.push(document);
     variables.push(vars);
     return {
-      s0: [{ price: 2_000_000 }, { price: 4_000_000 }],
+      s0: [{ price: 2_000_000 }],
+      o0: [{ price: 4_000_000 }],
       l0: [{ id: 10, price: 3_000_000 }, { id: 11, price: 6_000_000 }],
       s1: [],
+      o1: [],
       l1: [{ id: 20, price: 1_000_000 }],
     };
   }, () => attachSalesContext([card("1", 10), card("2", 20, "KT1Other")], now));
@@ -87,6 +89,7 @@ test("attachSalesContext: one request covers every card, 30 days back, matched b
   assert.equal(documents.length, 1, "a pack costs one extra OBJKT request, not one per card");
   assert.equal(variables[0]?.since, new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString());
   assert.match(documents[0], /s0: listing_sale\(/);
+  assert.match(documents[0], /o0: offer_sale\(/, "an accepted offer is a sale too");
   assert.match(documents[0], /l1: listing\(/);
   assert.match(documents[0], /fa_contract: { _eq: "KT1Other" }, token_id: { _eq: "2" }/);
   assert.match(documents[0], /status: { _eq: "active" }/);
@@ -126,7 +129,7 @@ test("attachSalesContext: a failed sales query serves the cards unchanged", asyn
 });
 
 test("attachSalesContext: a token missing from the response stays unknown, not 'no sales'", async () => {
-  const cards = await withRequest(async () => ({ s0: [], l0: [] }), () => attachSalesContext([card("1", 1), card("2", 2)]));
+  const cards = await withRequest(async () => ({ s0: [], o0: [], l0: [] }), () => attachSalesContext([card("1", 1), card("2", 2)]));
   assert.equal(cards[0].sales?.sales_30d, 0);
   assert.equal(cards[1].sales, undefined);
 });
@@ -139,4 +142,15 @@ test("attachSalesContext: an empty pack makes no request", async () => {
   }, () => attachSalesContext([]));
   assert.deepEqual(cards, []);
   assert.equal(calls, 0);
+});
+
+test("attachSalesContext: either sales table reaching its cap marks the count as a lower bound", async () => {
+  const full = Array.from({ length: SALES_PER_TOKEN_LIMIT }, () => ({ price: 1_000_000 }));
+  const cards = await withRequest(
+    async () => ({ s0: [], o0: full, l0: [], s1: [{ price: 1_000_000 }], o1: [], l1: [] }),
+    () => attachSalesContext([card("1", 1), card("2", 2)]),
+  );
+  assert.equal(cards[0].sales?.sales_30d, SALES_PER_TOKEN_LIMIT);
+  assert.equal(cards[0].sales?.sales_30d_capped, true);
+  assert.equal(cards[1].sales?.sales_30d_capped, false);
 });
