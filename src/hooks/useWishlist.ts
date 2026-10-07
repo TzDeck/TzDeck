@@ -70,7 +70,10 @@ export function saveWishlist(wishlist: NFTCard[]): void {
   isInitialized = true;
 
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(wishlist));
+    // Sales context describes the market when a pack was drawn; saved, it would
+    // reappear weeks later reading as "the last 30 days". Kept in memory only.
+    const persisted = wishlist.map((card) => ({ ...card, sales: undefined }));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
   } catch (error) {
     console.error("Failed to save wishlist:", error);
   }

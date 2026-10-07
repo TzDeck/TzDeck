@@ -28,6 +28,22 @@ export interface NFTCard {
    * a wishlist entry saved before this field existed carries.
    */
   content_warnings?: ContentWarning[];
+  /**
+   * Recent trading for this token, attached to freshly pulled cards. Absent
+   * when unknown, and never persisted: the wishlist drops it on save.
+   */
+  sales?: SalesContext;
+}
+
+/** How a token has traded lately, as of the moment its pack was drawn. */
+export interface SalesContext {
+  sales_30d: number;
+  /** True when sales_30d hit the per-token fetch limit, so it's a lower bound. */
+  sales_30d_capped: boolean;
+  /** Absent when the token had no sales in the window. */
+  median_sale_xtz?: number;
+  /** The cheapest active listing other than the one drawn; absent when there's none. */
+  cheapest_other_listing_xtz?: number;
 }
 
 /**

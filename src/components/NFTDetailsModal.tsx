@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 
 import { trackFunnelEvent } from "@/lib/analytics";
 
-import { getArtistProfileUrl, getCollectionUrl, distinctCollectionName, isImageArtifact, isPlayableVideo, type NFTCard } from "@/lib/card";
+import { getArtistProfileUrl, getCollectionUrl, distinctCollectionName, isImageArtifact, isPlayableVideo, type NFTCard, type SalesContext } from "@/lib/card";
 import { getCardImageSources } from "@/lib/ipfs";
 import { getCardKey } from "@/lib/cardKey";
 import { useDialogBehavior } from "@/hooks/useDialogBehavior";
@@ -152,6 +152,36 @@ function ModalImage({ card }: { card: NFTCard }) {
         }`}
       />
     </>
+  );
+}
+
+function salesCountLabel(sales: SalesContext): string {
+  if (sales.sales_30d === 0) return "No sales";
+  const count = `${sales.sales_30d}${sales.sales_30d_capped ? "+" : ""}`;
+  return `${count} ${sales.sales_30d === 1 && !sales.sales_30d_capped ? "sale" : "sales"}`;
+}
+
+/** Factual only: counts and prices, never whether the listing is a good price. */
+function RecentSales({ sales }: { sales: SalesContext | undefined }) {
+  if (!sales) return null;
+  return (
+    <div className="col-span-2 rounded-xl border border-border-subtle bg-surface-2 p-3">
+      <dt className="text-xs text-text-tertiary">Last 30 days</dt>
+      <dd className="mt-1 tabular-nums text-text-primary">
+        <span className="font-bold">{salesCountLabel(sales)}</span>
+        {sales.median_sale_xtz !== undefined && (
+          <>
+            {" · median "}
+            <TezIcon label="tez" /> {sales.median_sale_xtz}
+          </>
+        )}
+      </dd>
+      {sales.cheapest_other_listing_xtz !== undefined && (
+        <dd className="mt-1 text-xs tabular-nums text-text-secondary">
+          Cheapest other edition listed: <TezIcon label="tez" /> {sales.cheapest_other_listing_xtz}
+        </dd>
+      )}
+    </div>
   );
 }
 
@@ -335,6 +365,7 @@ export default function NFTDetailsModal({
                 <dd className="mt-1 font-bold tabular-nums text-text-primary">{activeCard.quantity_owned}</dd>
               </div>
             )}
+            <RecentSales sales={activeCard.sales} />
           </dl>
 
           {battleStats !== undefined && (
