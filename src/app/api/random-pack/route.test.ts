@@ -3,6 +3,7 @@ import test from "node:test";
 
 import { NextRequest } from "next/server";
 
+import { getSql, resetConnectionForTests } from "@/lib/battle/store";
 import { objktClient } from "@/lib/objkt";
 import { resetDenylistCacheForTests } from "@/lib/pullStore";
 import { GET, POST } from "./route";
@@ -150,6 +151,84 @@ test("random-pack: a pack still opens with no database configured", async () => 
     client.request = originalRequest;
     if (originalUrl === undefined) delete process.env.DATABASE_URL;
     else process.env.DATABASE_URL = originalUrl;
+    resetDenylistCacheForTests();
+  }
+});
+
+function stubOnePackListing() {
+  const client = objktClient as unknown as {
+    request: (document: string, variables?: Record<string, unknown>) => Promise<unknown>;
+  };
+  const originalRequest = client.request;
+  client.request = async () => ({
+    w1: [{ id: 1, price: 2_000_000, token: packToken("1", "KT1A") }],
+    w2: [],
+    w3: [],
+  });
+  return () => {
+    client.request = originalRequest;
+  };
+}
+
+function packRequest(ip: string, method: "GET" | "POST" = "GET"): NextRequest {
+  return method === "GET"
+    ? new NextRequest("http://localhost/api/random-pack?count=3", { headers: { "x-forwarded-for": ip } })
+    : new NextRequest("http://localhost/api/random-pack", {
+        method: "POST",
+        body: JSON.stringify({ count: 3 }),
+        headers: { "content-type": "application/json", "x-forwarded-for": ip },
+      });
+}
+
+async function cleanupPackRateLimit(ip: string) {
+  const sql = getSql();
+  await sql`DELETE FROM rate_limits WHERE bucket_key = ${`random-pack:${ip}`}`;
+}
+
+test("random-pack: an IP past its pack budget gets a 429 with Retry-After, on GET and POST alike", async () => {
+  const ip = "203.0.113.40";
+  const restore = stubOnePackListing();
+  resetDenylistCacheForTests();
+  try {
+    for (let i = 0; i < 30; i += 1) {
+      // Alternate methods: both share one budget, so neither is a way around it.
+      const response = await (i % 2 === 0 ? GET(packRequest(ip)) : POST(packRequest(ip, "POST")));
+      assert.equal(response.status, 200, `pack ${i + 1} of 30 should be within budget`);
+    }
+
+    for (const overBudget of [await GET(packRequest(ip)), await POST(packRequest(ip, "POST"))]) {
+      assert.equal(overBudget.status, 429);
+      assert.equal(overBudget.headers.get("Retry-After"), "60");
+      const body = await overBudget.json();
+      assert.match(body.error, /too fast/, "the pack screen shows this text as-is, so it must read as a person-facing message");
+    }
+
+    const otherIp = await GET(packRequest("203.0.113.41"));
+    assert.equal(otherIp.status, 200, "one caller's budget never blocks another's");
+  } finally {
+    restore();
+    await cleanupPackRateLimit(ip);
+    await cleanupPackRateLimit("203.0.113.41");
+  }
+});
+
+test("random-pack: a database that can't be reached still serves the pack, unmetered", async () => {
+  const originalUrl = process.env.DATABASE_URL;
+  // Nothing listens on port 1, so the limiter's query fails fast.
+  process.env.DATABASE_URL = "postgres://nobody@127.0.0.1:1/nothing";
+  resetConnectionForTests();
+  resetDenylistCacheForTests();
+  const restore = stubOnePackListing();
+
+  try {
+    const response = await GET(packRequest("203.0.113.42"));
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).cards.length, 1);
+  } finally {
+    restore();
+    if (originalUrl === undefined) delete process.env.DATABASE_URL;
+    else process.env.DATABASE_URL = originalUrl;
+    resetConnectionForTests();
     resetDenylistCacheForTests();
   }
 });
